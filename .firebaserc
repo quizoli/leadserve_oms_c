@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "leadserve-oms-dev"
+    "default": "leadserve-oms"
   },
   "targets": {},
   "etags": {}

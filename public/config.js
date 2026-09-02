@@ -1,18 +1,16 @@
 // config.js
 // LEADSERVE tenant-aware runtime configuration.
 (function () {
-    // TODO(leadserve): replace with a real dedicated LEADSERVE dev Firebase project.
-    // These are intentionally non-functional placeholders so this shell can NEVER
-    // read or write live clinic data. The demo tenant will not connect until you
-    // create `leadserve-oms-dev` (or similar) and paste its real web-app config here.
+    // LEADSERVE OMS project (leadserve-oms). Firestore: STANDARD, asia-southeast1.
+    // A web-app apiKey is not a secret — security is enforced by Firestore rules.
     const DEMO_FIREBASE = {
-        apiKey: "REPLACE_WITH_LEADSERVE_DEV_API_KEY",
-        authDomain: "leadserve-oms-dev.firebaseapp.com",
-        projectId: "leadserve-oms-dev",
-        storageBucket: "leadserve-oms-dev.firebasestorage.app",
-        messagingSenderId: "000000000000",
-        appId: "1:000000000000:web:0000000000000000000000",
-        measurementId: "G-XXXXXXXXXX"
+        apiKey: "AIzaSyBeTubwCGQbcIcQGVLlpb168YoN8rT_vJ4",
+        authDomain: "leadserve-oms.firebaseapp.com",
+        projectId: "leadserve-oms",
+        storageBucket: "leadserve-oms.firebasestorage.app",
+        messagingSenderId: "1057028706385",
+        appId: "1:1057028706385:web:4a2292a88c619ee40be870",
+        measurementId: "G-3PVXJD9TJJ"
     };
 
     const LEADSERVE_FIREBASE = DEMO_FIREBASE;
