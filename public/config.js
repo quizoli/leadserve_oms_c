@@ -125,6 +125,24 @@
         clinicContact: `Contact: ${activeTenant.contactInfo} | Physician: ${activeTenant.physicianInfo}`
     };
 
+    // Module entitlement guard: redirect out of any ADD-ON module page that is not
+    // enabled for this tenant. Runs immediately (before render) so a disabled module
+    // never flashes. Core modules always pass. This is CONVENIENCE gating — the real
+    // enforcement is server-side in Firestore rules (see ROADMAP v2).
+    (function moduleGuard() {
+        const seg = (window.location.pathname.split("/modules/")[1] || "");
+        const key = seg ? seg.split("/")[0].toLowerCase() : "";
+        if (!key) return; // not a module page (landing, login, leadserve)
+        const CORE = ["registration", "consultation", "charge-slip", "pos", "settings"];
+        if (CORE.indexOf(key) !== -1) return;
+        const mods = (activeTenant && activeTenant.modules) || {};
+        if (mods[key] !== true) {
+            const depth = Math.max(0, window.location.pathname.split("/").length - 2);
+            try { alert("This module is not enabled for your clinic."); } catch (e) {}
+            window.location.replace("../".repeat(depth) + "index.html");
+        }
+    })();
+
     function landingUrl() {
         const depth = Math.max(0, window.location.pathname.split("/").length - 2);
         const prefix = depth > 0 ? "../".repeat(depth) : "";

@@ -22,6 +22,12 @@
         "headers": [
           { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
         ]
+      },
+      {
+        "source": "**/*.@(png|jpg|jpeg|svg|gif|webp|ico)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+        ]
       }
     ]
   }
