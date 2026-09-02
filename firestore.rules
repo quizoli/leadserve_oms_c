@@ -74,13 +74,21 @@ service cloud.firestore {
         && !(col == 'settings' && docId == 'entitlement');
     }
 
-    // Flat legacyRoot collections (the current demo). Excludes the 'clinics' root,
-    // which is governed by the tenant rules above.
+    // Per-user directory (reverse membership index for the workspace switcher:
+    // users/{uid}.clinicIds = [tenantIds]). Readable only by that user; written by
+    // LEADSERVE provisioning (Admin SDK), never by clients.
+    match /users/{uid} {
+      allow read: if signedIn() && uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Flat legacyRoot collections (the current demo). Excludes 'clinics' and 'users',
+    // which are governed by the rules above.
     match /{col}/{docId} {
       allow read: if signedIn() && notDeactivated()
-        && col != 'clinics' && rootModuleAllowed(collectionModule(col));
+        && col != 'clinics' && col != 'users' && rootModuleAllowed(collectionModule(col));
       allow write: if signedIn() && notDeactivated()
-        && col != 'clinics' && rootModuleAllowed(collectionModule(col))
+        && col != 'clinics' && col != 'users' && rootModuleAllowed(collectionModule(col))
         && !(col == 'settings' && docId == 'entitlement');
     }
   }

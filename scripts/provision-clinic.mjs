@@ -54,6 +54,11 @@ export async function provisionClinic(db, { id, name, type = "general", plan = "
   batch.set(db.doc(`clinics/${id}/settings/entitlement`), {
     plan, modules: mods, updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
+  // Reverse index for the workspace switcher: which clinics this user can open.
+  batch.set(db.doc(`users/${adminUid}`), {
+    clinicIds: FieldValue.arrayUnion(id),
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
   await batch.commit();
   return { id, plan, modules: mods, adminUid };
 }

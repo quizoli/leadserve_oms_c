@@ -81,21 +81,31 @@
     const requestedTenant = (params.get(APP_CONFIG.tenantQueryParam) || "").trim().toLowerCase();
 
     function getStoredTenant() {
-        try {
-            const stored = localStorage.getItem(APP_CONFIG.tenantStorageKey);
-            return TENANTS[stored] ? stored : "";
-        } catch (e) {
-            return "";
-        }
+        try { return localStorage.getItem(APP_CONFIG.tenantStorageKey) || ""; }
+        catch (e) { return ""; }
     }
 
     function setStoredTenant(tenantId) {
-        try {
-            if (TENANTS[tenantId]) localStorage.setItem(APP_CONFIG.tenantStorageKey, tenantId);
-        } catch (e) {}
+        try { if (tenantId) localStorage.setItem(APP_CONFIG.tenantStorageKey, tenantId); }
+        catch (e) {}
     }
 
-    const tenantId = TENANTS[requestedTenant]
+    // Minimal placeholder profile for a dynamically-provisioned clinic (one that
+    // lives in Firestore under clinics/{id}, not in the static TENANTS registry).
+    // Its identity + modules are filled from Firestore after Firebase is ready.
+    function dynamicTenantProfile(id) {
+        return {
+            clinicId: id, clinicName: id, clinicShortName: id,
+            pageTitle: APP_CONFIG.appName, address: "", contactInfo: "", physicianInfo: "",
+            logoPath: "assets/logo.png", firebase: LEADSERVE_FIREBASE,
+            firestore: { collectionMode: "tenantPath" },
+            modules: undefined, dynamic: true,
+        };
+    }
+
+    // A requested tenant is honored if it's a known static tenant OR we're in
+    // leadserve (multi-tenant) mode — in which case it may be a dynamic clinic.
+    const tenantId = (requestedTenant && (TENANTS[requestedTenant] || leadserveRequested))
         ? requestedTenant
         : leadserveRequested
             ? (getStoredTenant() || APP_CONFIG.defaultTenantId)
@@ -103,7 +113,7 @@
 
     if (leadserveRequested) setStoredTenant(tenantId);
 
-    const activeTenant = TENANTS[tenantId] || TENANTS[APP_CONFIG.defaultTenantId];
+    const activeTenant = TENANTS[tenantId] || dynamicTenantProfile(tenantId);
     const isLeadserveMode = Boolean(leadserveRequested);
     const appTitle = isLeadserveMode
         ? `${APP_CONFIG.appName} - ${activeTenant.clinicShortName || activeTenant.clinicName}`
@@ -139,7 +149,8 @@
         if (!key) return; // not a module page (landing, login, leadserve)
         const CORE = ["registration", "consultation", "charge-slip", "pos", "settings"];
         if (CORE.indexOf(key) !== -1) return;
-        const mods = (activeTenant && activeTenant.modules) || {};
+        const mods = activeTenant && activeTenant.modules;
+        if (!mods) return; // dynamic tenant: modules load async -> applyServerEntitlement decides
         if (mods[key] !== true) {
             const depth = Math.max(0, window.location.pathname.split("/").length - 2);
             try { alert("This module is not enabled for your clinic."); } catch (e) {}
@@ -314,6 +325,29 @@
     // config.modules is only the pre-load default. Fail-open: if the doc is absent
     // or unreadable, keep the defaults. (The Firestore rules are the real gate;
     // this just keeps the UI honest.)
+    // For a dynamic (Firestore-backed) clinic, load its profile (name/type/address)
+    // from clinics/{tenantId} and re-apply branding. 'clinics' is a global collection,
+    // so it is not tenant-prefixed by the firestore patch.
+    async function loadTenantProfile() {
+        try {
+            if (!config.isLeadserveMode || !window.firebase || !firebase.firestore) return;
+            const snap = await firebase.firestore().collection("clinics").doc(config.tenantId).get();
+            if (!snap.exists) return;
+            const d = snap.data() || {};
+            if (d.clinicName) config.clinicName = d.clinicName;
+            config.clinicShortName = d.clinicShortName || d.clinicName || config.clinicShortName;
+            if (d.clinicType) config.clinicType = d.clinicType;
+            if (d.address) { config.address = d.address; config.clinicAddress = d.address; }
+            config.pageTitle = config.clinicName;
+            Object.assign(window.OMS_CONFIG, {
+                clinicName: config.clinicName, clinicShortName: config.clinicShortName,
+                clinicType: config.clinicType, address: config.address, clinicAddress: config.clinicAddress,
+            });
+            document.title = `${APP_CONFIG.appName} - ${config.clinicShortName || config.clinicName}`;
+            applyBranding();
+        } catch (e) { /* keep placeholder */ }
+    }
+
     async function applyServerEntitlement() {
         try {
             if (!window.firebase || !firebase.firestore) return;
@@ -344,7 +378,7 @@
         const timer = setInterval(() => {
             if ((window.firebase && firebase.firestore) || tries > 100) {
                 clearInterval(timer);
-                applyServerEntitlement();
+                loadTenantProfile().then(applyServerEntitlement);
             }
             tries++;
         }, 100);

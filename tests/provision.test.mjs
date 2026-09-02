@@ -35,6 +35,10 @@ await expect("entitlement doc created from plan", async () => {
   const m = (await adminDb.doc("clinics/clinicX/settings/entitlement").get()).data().modules;
   return m.prescription === true && m.philhealth === false;
 });
+await expect("reverse index users/{uid}.clinicIds includes the clinic", async () => {
+  const d = (await adminDb.doc("clinics/clinicX/settings/entitlement").get()) && (await adminDb.doc("users/adminX").get());
+  return (d.data().clinicIds || []).includes("clinicX");
+});
 
 // --- Rules: the provisioned admin now has access; strangers do not ---
 console.log("Provisioned admin gets access under the security rules");

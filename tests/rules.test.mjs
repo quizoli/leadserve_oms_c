@@ -78,6 +78,15 @@ await check("member CANNOT add clinic members (provisioning locked)", assertFail
 await check("member CANNOT edit clinic entitlement (locked)", assertFails(setDoc(doc(A, "clinics/clinicA/settings/entitlement"), { modules: { prescription: true } })));
 await check("member CANNOT write clinic profile doc (locked)", assertFails(setDoc(doc(A, "clinics/clinicA"), { name: "renamed" })));
 
+console.log("G. Per-user directory (workspace switcher reverse index)");
+await seed(async (db) => {
+  await setDoc(doc(db, "users/userA"), { clinicIds: ["clinicA"] });
+  await setDoc(doc(db, "users/userB"), { clinicIds: ["clinicB"] });
+});
+await check("user CAN read own directory doc", assertSucceeds(getDoc(doc(A, "users/userA"))));
+await check("user CANNOT read another user's directory doc", assertFails(getDoc(doc(A, "users/userB"))));
+await check("user CANNOT write own directory doc (provisioning-locked)", assertFails(setDoc(doc(A, "users/userA"), { clinicIds: ["clinicA", "clinicB"] })));
+
 await env.cleanup();
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

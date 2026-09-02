@@ -442,39 +442,49 @@
             return url.pathname + url.search;
         }
 
+        // Which clinics is this user a member of? Read the provisioned reverse index
+        // users/{uid}.clinicIds (Firestore), with a clinicMemberships fallback. Not
+        // filtered by the static registry — provisioned clinics live only in Firestore.
         async function getMembershipClinicIds(user) {
             try {
                 const userDoc = await db.collection("users").doc(user.uid).get();
                 if (userDoc.exists) {
-                    const data = userDoc.data() || {};
-                    const ids = data.clinicIds || data.clinics || data.tenants;
-                    if (Array.isArray(ids) && ids.length) return ids.filter((id) => tenants[id]);
+                    const ids = (userDoc.data() || {}).clinicIds;
+                    if (Array.isArray(ids) && ids.length) return Array.from(new Set(ids));
                 }
             } catch (e) {}
 
             try {
                 const snap = await db.collection("clinicMemberships").where("uid", "==", user.uid).get();
-                const ids = snap.docs.map((doc) => (doc.data() || {}).clinicId).filter((id) => tenants[id]);
+                const ids = snap.docs.map((doc) => (doc.data() || {}).clinicId).filter(Boolean);
                 if (ids.length) return Array.from(new Set(ids));
             } catch (e) {}
 
-            return tenantIds;
+            return [];
         }
 
-        function renderClinics(ids) {
+        // Load each clinic's profile from clinics/{id} (falls back to static registry / id).
+        async function renderClinics(ids) {
             clinicGrid.innerHTML = "";
-            ids.forEach((tenantId) => {
-                const clinic = tenants[tenantId];
+            for (const tenantId of ids) {
+                let clinic = Object.assign({}, tenants[tenantId] || {});
+                try {
+                    const snap = await db.collection("clinics").doc(tenantId).get();
+                    if (snap.exists) clinic = Object.assign(clinic, snap.data());
+                } catch (e) {}
+                const name = clinic.clinicName || tenantId;
+                const meta = clinic.address || clinic.clinicType || "";
+                const badge = clinic.clinicShortName || tenantId;
                 const card = document.createElement("button");
                 card.className = "clinic-card";
                 card.type = "button";
                 card.innerHTML = `
                     <div class="clinic-top">
                         <div>
-                            <div class="clinic-name">${clinic.clinicName}</div>
-                            <div class="clinic-meta">${clinic.address || ""}</div>
+                            <div class="clinic-name">${name}</div>
+                            <div class="clinic-meta">${meta}</div>
                         </div>
-                        <span class="clinic-badge">${clinic.clinicShortName || tenantId}</span>
+                        <span class="clinic-badge">${badge}</span>
                     </div>
                     <div class="clinic-footer">
                         <span class="clinic-meta">Workspace ID: ${tenantId}</span>
@@ -482,21 +492,19 @@
                     </div>
                 `;
                 card.addEventListener("click", () => {
-                    try {
-                        localStorage.setItem("leadserve.activeTenantId", tenantId);
-                    } catch (e) {}
+                    try { localStorage.setItem("leadserve.activeTenantId", tenantId); } catch (e) {}
                     window.location.href = getTenantUrl(tenantId);
                 });
                 clinicGrid.appendChild(card);
-            });
+            }
         }
 
         async function loadClinics(user) {
             showClinics(user);
             setStatus(clinicStatus, "Loading clinic access...", false);
             const ids = await getMembershipClinicIds(user);
-            renderClinics(ids);
-            setStatus(clinicStatus, ids.length ? "" : "No clinic access is assigned to this account.", !ids.length);
+            await renderClinics(ids);
+            setStatus(clinicStatus, ids.length ? "" : "No clinic workspace is assigned to this account yet.", !ids.length);
         }
 
         el("btnLogin").addEventListener("click", async () => {
