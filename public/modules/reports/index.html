@@ -288,13 +288,13 @@
             <div class="doc-header">
               <img src="../../assets/logo.png" class="left" alt="Logo" onerror="this.style.display='none'">
               <div>
-                <h3>LEADSERVE DEMO CLINIC</h3>
-                <p>Demo City, Philippines</p>
-                <p>Email: Contact details available at the clinic</p>
+                <h3>${((window.OMS_CONFIG||{}).clinicName||'').toUpperCase()}</h3>
+                <p>${(window.OMS_CONFIG||{}).address||''}</p>
+                <p>${(window.OMS_CONFIG||{}).contactInfo||''}</p>
               </div>
               <img src="../../assets/logo.png" class="right" alt="Logo" onerror="this.style.display='none'">
             </div>
-            <h2 class="report-title">LEADSERVE OPD Census ${monthName} ${year}</h2>
+            <h2 class="report-title">${(window.OMS_CONFIG||{}).clinicShortName||'Clinic'} OPD Census ${monthName} ${year}</h2>
             <p class="muted noprint" style="font-family:Arial,sans-serif; text-align:center; margin-top:-4px;">Booked comes from Booking/Consultation appointments. Actual OPD comes from paid Charge Slip/POS receipts.</p>
             <div class="table-wrap">
               <table class="census">
@@ -341,10 +341,10 @@
             <div class="signatures">
               <p>Prepared by:</p><br>
               <p>___________________________</p>
-              <p>LEADSERVE OPD Nurse</p>
+              <p>${(window.OMS_CONFIG||{}).clinicShortName||''} OPD Nurse</p>
               <p style="margin-top:28px;">Approved by:</p><br>
-              <p><b>Attending Physician</b></p>
-              <p>CEO - LEADSERVE Demo Clinic</p>
+              <p><b>${(window.OMS_CONFIG||{}).physicianInfo||''}</b></p>
+              <p>${(window.OMS_CONFIG||{}).clinicName||''}</p>
             </div>
           </div>`;
         byId("btnPrint").style.display = "inline-flex";

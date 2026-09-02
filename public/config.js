@@ -194,6 +194,27 @@
         return rawDb;
     }
 
+    // Fill any [data-clinic="KEY"] element from the active tenant config.
+    // Reusable for print letterheads: call window.applyClinicIdentity(node)
+    // after building dynamic content. Keys: name, shortName, address, contact, physician, appName.
+    function applyClinicIdentity(root) {
+        const scope = root || document;
+        const map = {
+            name: config.clinicName,
+            shortName: config.clinicShortName || config.clinicName,
+            address: config.address || "",
+            contact: config.contactInfo || "",
+            physician: config.physicianInfo || "",
+            appName: config.appName
+        };
+        scope.querySelectorAll("[data-clinic]").forEach((el) => {
+            const key = el.getAttribute("data-clinic");
+            if (Object.prototype.hasOwnProperty.call(map, key) && map[key] != null) {
+                el.textContent = map[key];
+            }
+        });
+    }
+
     function applyBranding() {
         if (config.appTitle) document.title = config.appTitle;
         if (config.isLeadserveMode) {
@@ -261,6 +282,7 @@
             });
         }
 
+        applyClinicIdentity(document);
         decorateTenantLinks(document);
     }
 
@@ -271,6 +293,7 @@
     window.decorateTenantLinks = decorateTenantLinks;
     window.tenantCollectionPath = tenantCollectionPath;
     window.initOMSFirestore = initOMSFirestore;
+    window.applyClinicIdentity = applyClinicIdentity;
 
     document.addEventListener("DOMContentLoaded", applyBranding);
 })();

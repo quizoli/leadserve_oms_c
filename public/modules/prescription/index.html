@@ -30,9 +30,8 @@
                 src="../../assets/logo.png"
                 alt="LEADSERVE OMS Logo" style="height:50px;">
             <div>
-                <div style="font-size:20px;font-weight:bold;">LEADSERVE OMS</div>
-                <div style="font-size:13px;line-height:1.4;"> Demo City, Philippines
-Contact details available at the clinic • Attending Physician </div>
+                <div style="font-size:20px;font-weight:bold;" data-clinic="name">LEADSERVE OMS</div>
+                <div style="font-size:13px;line-height:1.4;"><span data-clinic="address"></span> &bull; <span data-clinic="physician"></span></div>
             </div>
         </div>
         <div><a href="../../index.html"
@@ -449,9 +448,9 @@ Contact details available at the clinic • Attending Physician </div>
                             src="../../assets/logo.png"
                             alt="LEADSERVE OMS Logo">
                         <div>
-                            <div class="title">LEADSERVE OMS — Prescription</div>
-                            <div class="sub">Demo City, Philippines • License details on file</div>
-                            <div class="sub">Physician: Attending Physician — Cornea & Refractive Surgery
+                            <div class="title"><span data-clinic="name"></span> — Prescription</div>
+                            <div class="sub"><span data-clinic="address"></span> • License details on file</div>
+                            <div class="sub">Physician: <span data-clinic="physician"></span>
                             </div>
                         </div>
                     </div>
@@ -502,13 +501,12 @@ Contact details available at the clinic • Attending Physician </div>
                                     src="../../assets/logo.png"
                                     alt="LEADSERVE OMS Logo">
                                 <div>
-                                    <div class="p-clinic">LEADSERVE OMS</div>
-                                    <div>Demo City, Philippines</div>
+                                    <div class="p-clinic" data-clinic="name">LEADSERVE OMS</div>
+                                    <div data-clinic="address">Demo City, Philippines</div>
                                 </div>
                             </div>
                             <div class="p-meta" style="text-align:right">
-                                <div><strong>Attending Physician</strong></div>
-                                <div>Cornea & Refractive Surgery</div>
+                                <div><strong data-clinic="physician"></strong></div>
                                 <div>License details on file</div>
                             </div>
                         </div>
@@ -540,7 +538,7 @@ Contact details available at the clinic • Attending Physician </div>
                                 <div class="muted">Security Code: <span id="sec_code">—</span></div>
                             </div>
                         </div>
-                        <div class="p-foot"> LEADSERVE OMS • Demo City, Philippines •
+                        <div class="p-foot"> <span data-clinic="name"></span> • <span data-clinic="address"></span> •
                             License details on file<div class="muted" style="font-size:.8rem">This code is generated
                                 locally. When online, a server-signed QR will be used for verification.</div>
                             <div id="stamp" class="muted">Printed: </div>
@@ -552,8 +550,7 @@ Contact details available at the clinic • Attending Physician </div>
             <script>!function () { const t = "prescriptions", e = document.getElementById("data-panel"), n = document.getElementById("data-table"), o = document.getElementById("act-save"), c = document.getElementById("act-list"), a = document.getElementById("act-export"), l = document.getElementById("act-edit-toggle"), r = document.getElementById("act-save-edits"); let d = []; async function i() { const e = await fetchCollection(t); if (d = e, !n) return; const o = Array.from(e.reduce(((t, e) => (Object.keys(e).forEach((e => t.add(e))), t)), new Set(["__id"]))); n.innerHTML = "<thead><tr>" + o.map((t => `<th>${t}</th>`)).join("") + "<th>Actions</th></tr></thead>"; const c = document.createElement("tbody"); e.forEach(((e, n) => { const a = document.createElement("tr"); o.forEach((t => { const n = document.createElement("td"); n.textContent = void 0 === e[t] ? "" : e[t], a.appendChild(n) })); const l = document.createElement("td"); l.className = "actions-cell"; const r = document.createElement("button"); r.className = "btn danger", r.textContent = "Delete", r.onclick = async () => { await deleteDoc(t, e.__id), i() }, l.appendChild(r), a.appendChild(l), c.appendChild(a) })), n.appendChild(c) } o && (o.onclick = async () => { const e = getAllFieldValues(document), n = await saveToCollection(t, e); alert("Saved to " + t + " (" + n._provider + ").") }), c && (c.onclick = async () => { e.classList.toggle("hidden"), e.classList.contains("hidden") || i() }), a && (a.onclick = () => { if (!d.length) return alert("Nothing to export yet. Click List first."); downloadCSV(t + ".csv", d) }), l && (l.onclick = () => { const t = document.querySelector("table"); if (!t) return alert("No table found."); const e = "true" !== t.getAttribute("data-editable"); t.setAttribute("data-editable", e ? "true" : "false"), t.querySelectorAll("td").forEach((t => { t.contentEditable = e })) }), r && (r.onclick = () => { const e = document.querySelector("table"); if (!e) return alert("No table found."); const n = [], o = Array.from(e.querySelectorAll("thead th")).map((t => t.textContent.trim())); e.querySelectorAll("tbody tr").forEach((t => { const e = {}; Array.from(t.children).forEach(((t, n) => { n < o.length && (e[o[n]] = t.textContent.trim()) })), n.push(e) })), localStorage.setItem(t + "_snapshot", JSON.stringify(n)), alert("Edits saved locally (snapshot). To persist to Firestore, we can wire per-row saves next.") }) }();</script>
             <footer
                 style="background:linear-gradient(180deg,#0a3d62,#115c8d);color:white;text-align:center;padding:10px;margin-top:20px;font-size:.85rem">
-                LEADSERVE OMS • Demo City, Philippines •
-                Contact:  Advanced eye care for everyone </footer>
+                <span data-clinic="name"></span> • <span data-clinic="address"></span> • <span data-clinic="contact"></span> </footer>
         </body>
 
         </html>
