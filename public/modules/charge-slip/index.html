@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Charge Slip + POS + Dashboard</title>
+<link rel="icon" href="../../assets/logo.png">
+
+<script src="../../config.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../assets/leadserve-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<script>
+    if (!firebase.apps.length) {
+        firebase.initializeApp(window.OMS_CONFIG.firebase);
+    }
+</script>
+
+<script src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* ========================= Apple-style UI Theme ========================= */
+:root { --bg:#f5f5f7; --card:#ffffff; --bd:#e5e7eb; --mut:#6b7280; --pri:#0a84ff; --pri-dark:#007aff; --red:#ff3b30; --ok:#34c759; --ink:#111827; --ink-2:#374151; --ink-3:#6b7280; --hairline: rgba(17,24,39,.10); --hairline2: rgba(17,24,39,.14); --shadow2: 0 4px 14px rgba(0,0,0,.08); --radius: 18px; --hover: rgba(10,132,255,.08); --zebra: rgba(17,24,39,.02); }
+*{ box-sizing:border-box; font-family: -apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial; }
+body{ margin:0; background:transparent; color:var(--ink); -webkit-font-smoothing:antialiased; }
+.wrap{ max-width:1200px; margin:10px auto 24px; padding:0 16px 40px; }
+.tabs{ display:inline-flex; gap:6px; padding:6px; background:rgba(255,255,255,.72); border:1px solid var(--hairline); border-radius:999px; margin: 0; overflow-x: auto; }
+.tab{ border:0; background:transparent; color:var(--mut); padding:10px 18px; border-radius:999px; font-weight:800; font-size:13px; cursor:pointer; white-space:nowrap; transition: all 0.2s ease; }
+.tab:hover{ background:rgba(17,24,39,.04); }
+.tab.active{ background:#fff; color:var(--ink); box-shadow:0 6px 16px rgba(0,0,0,.10); border:1px solid rgba(17,24,39,.08); }
+.card{ background:var(--card); border:1px solid var(--hairline); border-radius:var(--radius); box-shadow:var(--shadow2); padding:20px; margin-bottom:14px; }
+.row{ display:grid; grid-template-columns:repeat(12,1fr); gap:12px; }
+.section-title{ font-weight:800; font-size:18px; margin-bottom:8px; }
+label{ font-size:12px; font-weight:800; color:var(--ink-2); text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:6px; }
+input, select{ border:1px solid var(--hairline); border-radius:12px; padding:10px 12px; background:rgba(255,255,255,.94); width:100%; font-size:14px; outline:none; transition: border-color 0.2s ease; }
+input:focus, select:focus{ border-color: rgba(10,132,255,.55); box-shadow: 0 0 0 4px rgba(10,132,255,.16); }
+input[type=number]{ text-align:right; }
+.toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.btn{ border:1px solid var(--hairline2); background:rgba(255,255,255,.92); color:var(--ink); padding:10px 16px; border-radius:999px; font-weight:800; font-size:13px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.06); white-space:nowrap; transition: transform 0.06s ease; }
+.btn:active { transform: translateY(1px); }
+.btn:hover{ background:#fff; }
+.btn.pri{ border-color: rgba(10,132,255,.45); background:linear-gradient(180deg,var(--pri) 0%, var(--pri-dark) 100%); color:#fff; box-shadow:0 10px 22px rgba(10,132,255,.22); }
+.btn.ok{ border-color: rgba(52,199,89,.45); background:var(--ok); color:#fff; }
+.btn.red{ border-color: rgba(255,59,48,.35); color: var(--red); box-shadow:none; }
+.btn.small { padding: 6px 12px; font-size: 11px; }
+.mut{ color:var(--mut) }
+.hidden{ display:none !important; }
+.access-denied{ max-width:720px; margin:48px auto; padding:24px; background:#fff; border:1px solid var(--hairline); border-radius:18px; box-shadow:var(--shadow2); font-weight:800; color:var(--red); }
+.table-wrap{ overflow:auto; max-width:100%; border:1px solid var(--hairline); border-radius:14px; background:#fff; margin-bottom:12px; }
+.table{ width:100%; border-collapse:collapse; }
+.table th{ background:rgba(245,245,247,.95); font-weight:900; color:var(--ink-2); font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:12px 14px; border-bottom:1px solid var(--hairline); text-align:left; }
+.table td{ border-bottom:1px solid rgba(17,24,39,.06); padding:12px 14px; font-size:13px; vertical-align:middle; }
+.table tbody tr:nth-child(even) td{ background: var(--zebra); }
+.table-sales{ min-width:1700px; }
+.right{ text-align:right; }
+.center{ text-align:center; }
+.totals{ display:grid; grid-template-columns:1fr; gap:8px; background:var(--zebra); padding:16px; border-radius:14px; border:1px solid var(--hairline); }
+.totals .rowline{ display:flex; justify-content:space-between; font-size:14px;}
+.hr{ height:1px; background:var(--hairline); margin:16px 0; grid-column:span 12;}
+.badge{ display:inline-flex; align-items:center; font-size:11px; padding:4px 10px; border-radius:999px; border:1px solid var(--bd); background:#f3f4f6; font-weight:800;}
+.badge.good { background: rgba(52,199,89,.15); color: #15803d; border-color: rgba(52,199,89,.3); }
+.badge.warn { background: rgba(245,158,11,.15); color: #b45309; border-color: rgba(245,158,11,.3); }
+.kpi-card { background: rgba(10,132,255,.03); border-color: rgba(10,132,255,.15); }
+.kpi-card .mut{font-size:12px; font-weight:800; text-transform:uppercase;}
+
+/* Reduced font size slightly to prevent cutting off large monetary amounts */
+.kpi-card .kpi-val{font-weight:800; font-size:18px; letter-spacing:-0.01em; color:var(--pri-dark); margin-top:8px; white-space:nowrap;}
+
+/* Force strict column percentages so the tables spread beautifully across the cards */
+#view-dash #tblTopSvc, #view-dash #tblTopMed, #view-dash #tblDoctorCF {
+    font-size: 12px;
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Allocate 55% space to Names, 15% to QTY, and 30% to Price */
+#view-dash #tblTopSvc th:first-child, #view-dash #tblTopMed th:first-child, #view-dash #tblDoctorCF th:first-child { width: 55%; }
+#view-dash #tblTopSvc th:nth-child(2), #view-dash #tblTopMed th:nth-child(2), #view-dash #tblDoctorCF th:nth-child(2) { width: 15%; }
+#view-dash #tblTopSvc th:nth-child(3), #view-dash #tblTopMed th:nth-child(3), #view-dash #tblDoctorCF th:nth-child(3) { width: 30%; }
+
+/* The Fix: max-width: 0 forces the ellipsis to clamp the text inside the CSS Grid without stretching the card */
+#view-dash #tblTopSvc td:first-child,
+#view-dash #tblTopMed td:first-child,
+#view-dash #tblDoctorCF td:first-child {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;
+}
+
+.chart-wrap{ position:relative; width:100%; height:260px; }
+.chart-wrap.tall{ height:320px; }
+
+/* ========================= Mobile Responsiveness ========================= */
+@media (max-width: 900px) {
+    .row { display: flex !important; flex-wrap: wrap; gap: 12px; }
+    .row > div { width: 100% !important; flex: 0 0 100% !important; margin: 0 !important; }
+    .row .kpi-card { width: calc(50% - 6px) !important; flex: 0 0 calc(50% - 6px) !important; }
+    .toolbar { justify-content: flex-start !important; width: 100%; margin-top: 8px; }
+    .section-title { width: 100%; margin-bottom: 8px; }
+    .tabs { width: 100%; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+    .chart-wrap { height: 280px; width: 100%; }
+    .wrap { padding: 0 10px 30px; margin-top: 4px; }
+}
+
+.p-wrap{ font-family:Segoe UI,Arial; margin:18px; display:none; }
+@media print {
+    body * { visibility: hidden; }
+    .p-wrap, .p-wrap * { visibility: visible; }
+    .p-wrap { display:block; position: absolute; left: 0; top: 0; width:100%; }
+    .p-h{ text-align:center; margin:0; font-size:18px; font-weight:bold; }
+    .p-meta{ text-align:center; color:#6b7280; font-size:12px; }
+    .p-sec{ font-size:14px; font-weight:700; margin:14px 0 6px }
+    .p-table{ width:100%; border-collapse:collapse; font-size:12px; margin-bottom:12px; }
+    .p-table th{ text-align:left; font-weight:700; padding:6px 4px; border-bottom:1px solid #000; }
+    .p-table td{ padding:6px 4px; border-bottom:1px dashed #ccc; }
+    .p-right{ text-align:right } .p-center{ text-align:center }
+}
+</style>
+</head>
+<body>
+<div id="accessDenied" class="access-denied hidden">This account does not have access to Charge Slip / POS.</div>
+<div class="wrap">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 16px;">
+        <div class="tabs">
+            <button class="tab active" data-view="slips">Charge Slip</button>
+            <button class="tab" data-view="sales">Sales History</button>
+            <button class="tab" data-view="dash">Dashboard</button>
+            <button class="tab" data-view="bin">Recycle Bin</button>
+        </div>
+        <div>
+            <span class="badge" id="invStatusBadge">Inventory: Syncing...</span>
+        </div>
+    </div>
+
+    <div id="view-slips">
+        <div class="card">
+            <div class="row" style="align-items:end">
+                <div class="section-title" style="grid-column:span 6; margin:0;">Charge Slip</div>
+                <div class="toolbar" style="grid-column:span 6; justify-content:flex-end">
+                    <button class="btn" id="btnNewSlip">New Slip</button>
+                    <button class="btn" id="btnPrintSlip">Print Slip</button>
+                    <button class="btn" id="btnExportSlipsCSV">Export Slips CSV</button>
+                </div>
+            </div>
+            <div class="row" style="margin-top:16px;">
+                <div style="grid-column:span 4">
+                    <label>Patient Name</label>
+                    <input id="patientName" list="patientList" placeholder="Search or enter patient name" autocomplete="off"/>
+                </div>
+                <div style="grid-column:span 3">
+                    <label>Attending Physician</label>
+                    <select id="doctorName">
+                        <option value="">-- Select Doctor --</option>
+                    </select>
+                </div>
+                <div style="grid-column:span 2">
+                    <label>Date</label>
+                    <input id="slipDate" type="date"/>
+                </div>
+                <div style="grid-column:span 2">
+                    <label>Slip No.</label>
+                    <input id="slipNo" readonly="" style="background:#f3f4f6; color:var(--mut);"/>
+                </div>
+                <div style="grid-column:span 1">
+                    <label>Status</label>
+                    <div class="badge" id="slipStatus">NEW</div>
+                </div>
+            </div>
+            <div class="hr"></div>
+            <div class="row">
+                <div style="grid-column:span 12; font-weight:800; font-size:16px;">Services <span class="mut" style="font-weight:400; font-size:12px;">(auto unit price)</span></div>
+                <div style="grid-column:span 12">
+                    <div class="table-wrap">
+                        <table class="table" id="tblServices">
+                            <thead>
+                                <tr>
+                                    <th style="width:45%">Description</th>
+                                    <th class="center" style="width:12%">Qty</th>
+                                    <th class="center" style="width:20%">Unit Price</th>
+                                    <th class="center" style="width:18%">Subtotal</th>
+                                    <th style="width:5%"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="toolbar">
+                        <button class="btn small" id="addService">+ Add Service</button>
+                    </div>
+                </div>
+            </div>
+            <div class="hr"></div>
+            <div class="row">
+                <div style="grid-column:span 12; font-weight:800; font-size:16px;">Medicines / Inventory <span class="mut" style="font-weight:400; font-size:12px;">(auto-deducts on payment)</span></div>
+                <div style="grid-column:span 12">
+                    <div class="table-wrap">
+                        <table class="table" id="tblMeds">
+                            <thead>
+                                <tr>
+                                    <th style="width:45%">Item Description</th>
+                                    <th class="center" style="width:12%">Qty</th>
+                                    <th class="center" style="width:20%">Unit Price</th>
+                                    <th class="center" style="width:18%">Subtotal</th>
+                                    <th style="width:5%"></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="toolbar">
+                        <button class="btn small" id="addMed">+ Add Item</button>
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="margin-top:20px">
+                <div class="totals" style="grid-column:span 6">
+                    <div class="rowline"><span class="mut" style="font-weight:700;">Services Subtotal</span><b id="svcTotal">₱0.00</b></div>
+                    <div class="rowline"><span class="mut" style="font-weight:700;">Medicines Subtotal</span><b id="medTotal">₱0.00</b></div>
+                    <div class="rowline" style="align-items:center;">
+                        <label for="scPwdDiscount" style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; font-weight:600;">
+                            <input type="checkbox" id="scPwdDiscount" style="width:16px; height:16px;">
+                            <span>SC/PWD medicine discount (20%)</span>
+                        </label>
+                        <b id="discountAmt" style="color:var(--red);">-₱0.00</b>
+                    </div>
+                    <div style="height:1px; background:var(--hairline); margin:4px 0;"></div>
+                    <div class="rowline" style="font-size:18px; font-weight:900; color:var(--pri-dark);">
+                        <span class="mut" style="font-size:14px; color:inherit;">Grand Total</span><b id="grandTotal">₱0.00</b>
+                    </div>
+                </div>
+                <div style="grid-column:span 6; display:flex; gap:24px; justify-content:flex-end; align-items:center; text-align:right;">
+                    <div>
+                        <div class="mut" style="font-size:12px; font-weight:800; text-transform:uppercase;">Already Paid</div>
+                        <div style="font-size:16px;"><b id="alreadyPaid">₱0.00</b></div>
+                    </div>
+                    <div>
+                        <div class="mut" style="font-size:12px; font-weight:800; text-transform:uppercase;">Current Balance</div>
+                        <div style="font-size:20px; color:var(--red);"><b id="currentBalance">₱0.00</b></div>
+                    </div>
+                    <div>
+                        <div class="mut" style="font-size:12px; font-weight:800; text-transform:uppercase;">Last OR</div>
+                        <div class="badge" id="lastOR">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="section-title" style="color:var(--ok);">POS — Record Payment</div>
+            <div class="row">
+                <div style="grid-column:span 4">
+                    <label>Amount (₱)</label>
+                    <input id="payAmount" min="0" placeholder="0.00" step="0.01" type="number" style="font-weight:bold;"/>
+                </div>
+                <div style="grid-column:span 3">
+                    <label>Method</label>
+                    <select id="payMethod">
+                        <option>Cash</option><option>Card</option><option>GCash</option><option>HMO</option><option>Other</option>
+                    </select>
+                </div>
+                <div style="grid-column:span 3">
+                    <label>OR No.</label>
+                    <input id="payOR" placeholder="Auto if blank"/>
+                </div>
+                <div style="grid-column:span 12">
+                    <label>Remarks</label>
+                    <input id="payRemarks" placeholder="Optional note"/>
+                </div>
+            </div>
+            <div class="toolbar" style="margin-top:16px">
+                <button class="btn ok" id="btnRecordPayment" style="padding:10px 24px;">Record Payment</button>
+                <button class="btn" id="btnPayInFull">Pay in Full</button>
+                <button class="btn" id="btnSettleBalance">Settle Balance</button>
+                <button class="btn" disabled="" id="btnPrintLastReceipt">Print Last Receipt</button>
+                <button class="btn pri" id="btnSaveSlip" style="margin-left:auto">Save Slip Only</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="section-title">Charge Slip History <span class="badge" id="slipCount" style="margin-left:8px;">0</span></div>
+            <div class="table-wrap">
+                <table class="table" id="histTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th><th>Slip</th><th>Patient</th><th>Doctor</th><th class="right">Services</th><th class="right">Meds</th><th class="right">Total</th><th class="right">Paid</th><th class="right">Balance</th><th>Status</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-sales" style="display:none">
+        <div class="card">
+            <div class="row" style="align-items:center">
+                <div class="section-title" style="grid-column:span 6; margin:0;">Sales History</div>
+                <div class="toolbar" style="grid-column:span 6; justify-content:flex-end">
+                    <button class="btn" id="btnExportSalesCSV">Export Sales CSV</button>
+                    <button class="btn" id="btnExportDetailCSV">Export Line Items</button>
+                </div>
+            </div>
+            <div class="row" style="margin:16px 0; align-items:center">
+                <div style="grid-column:span 12; display:flex; gap:12px; align-items:center;">
+                    <input id="salesSearch" type="text" placeholder="Search OR, slip, patient, doctor, item..." style="max-width:400px;">
+                    <span class="badge" id="salesCount"></span>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table class="table table-sales" id="salesTable">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th><th>OR</th><th>Slip</th><th>Patient</th><th>Doctor</th><th class="right">Total Bill</th><th>Method</th><th class="right">Amount Paid</th><th class="right">Balance</th><th>Item Type</th><th>Description</th><th class="right">Qty</th><th class="right">Unit Price</th><th class="right">Subtotal</th><th>Status</th><th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-dash" style="display:none">
+        <div class="card">
+            <div class="row" style="align-items:center">
+                <div class="section-title" style="grid-column:span 4; margin:0;">Dashboard</div>
+                <div class="toolbar" style="grid-column:span 8; justify-content:flex-end">
+                    <label class="mut">View</label>
+                    <select id="dashMode" style="width:auto">
+                        <option value="month">Month</option><option value="range">Date range</option><option value="day">Day</option><option value="year">Year</option><option value="running">Running (all)</option>
+                    </select>
+                    <span id="dashCtlMonth" style="display:flex; gap:8px; align-items:center">
+                        <label class="mut">Month</label><input id="dashMonth" style="width:auto" type="month"/>
+                        <button class="btn small" id="btnDashThisMonth">This month</button>
+                    </span>
+                    <span id="dashCtlRange" style="display:none; gap:8px; align-items:center">
+                        <label class="mut">From</label><input id="dashFrom" style="width:auto" type="date"/>
+                        <label class="mut">To</label><input id="dashTo" style="width:auto" type="date"/>
+                        <button class="btn small" id="btnDashApplyRange">Apply</button>
+                    </span>
+                    <span id="dashCtlDay" style="display:none; gap:8px; align-items:center">
+                        <label class="mut">Date</label><input id="dashDay" style="width:auto" type="date"/>
+                    </span>
+                    <span id="dashCtlYear" style="display:none; gap:8px; align-items:center">
+                        <label class="mut">Year</label><input id="dashYear" style="width:92px" type="number" min="2000" max="2100" step="1"/>
+                    </span>
+                </div>
+            </div>
+            <div class="row" style="margin-top:20px;">
+                <div class="card kpi-card" style="grid-column:span 2"><div class="mut">Total Paid</div><div id="kpiPaid" class="kpi-val">₱0.00</div></div>
+                <div class="card kpi-card" style="grid-column:span 2"><div class="mut">Receipts</div><div id="kpiCount" class="kpi-val">0</div></div>
+                <div class="card kpi-card" style="grid-column:span 2"><div class="mut">Avg Receipt</div><div id="kpiAvg" class="kpi-val">₱0.00</div></div>
+                <div class="card kpi-card" style="grid-column:span 2"><div class="mut">Patients</div><div id="kpiPatients" class="kpi-val">0</div></div>
+                <div class="card kpi-card" style="grid-column:span 2"><div class="mut">Total Billed</div><div id="kpiBilled" class="kpi-val">₱0.00</div></div>
+                <div class="card kpi-card" style="grid-column:span 2"><div class="mut">Balance</div><div id="kpiBalance" class="kpi-val" style="color:var(--red);">₱0.00</div></div>
+            </div>
+
+            <div class="row" style="margin-top:8px">
+                <div class="card" style="grid-column:span 4">
+                    <div class="section-title" style="font-size:14px;">CF per Doctor</div>
+                    <table class="table" id="tblDoctorCF"><thead><tr><th>Physician</th><th class="right">Qty</th><th class="right">₱</th></tr></thead><tbody></tbody></table>
+                </div>
+                <div class="card" style="grid-column:span 4">
+                    <div class="section-title" style="font-size:14px;">Top Services</div>
+                    <table class="table" id="tblTopSvc"><thead><tr><th>Service</th><th class="right">Qty</th><th class="right">₱</th></tr></thead><tbody></tbody></table>
+                </div>
+                <div class="card" style="grid-column:span 4">
+                    <div class="section-title" style="font-size:14px;">Top Medicines</div>
+                    <table class="table" id="tblTopMed"><thead><tr><th>Medicine</th><th class="right">Qty</th><th class="right">₱</th></tr></thead><tbody></tbody></table>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:10px">
+                <div class="card" style="grid-column:span 6">
+                    <div class="section-title" style="font-size:14px;">Revenue Breakdown</div>
+                    <div class="chart-wrap"><canvas id="chartBreakdown"></canvas></div>
+                </div>
+                <div class="card" style="grid-column:span 6">
+                    <div class="section-title" style="font-size:14px;">Monthly Sales</div>
+                    <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
+                </div>
+            </div>
+            <div class="row" style="margin-top:10px">
+                <div class="card" style="grid-column:span 12">
+                    <div class="section-title" style="font-size:14px;">Daily Sales</div>
+                    <div class="chart-wrap tall"><canvas id="chartDaily"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-bin" style="display:none">
+        <div class="card">
+            <div class="section-title" style="color:var(--mut);">Recycle Bin — Slips</div>
+            <div class="table-wrap">
+                <table class="table" id="binTable">
+                    <thead><tr><th>Date</th><th>Slip</th><th>Patient</th><th class="right">Total</th><th>Deleted</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card" style="margin-top:10px">
+            <div class="section-title" style="color:var(--mut);">Recycle Bin — Receipts</div>
+            <div class="table-wrap">
+                <table class="table" id="binReceipts">
+                    <thead><tr><th>Date/Time</th><th>OR</th><th>Slip</th><th>Patient</th><th class="right">Amount</th><th>Deleted</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<datalist id="svcList"></datalist>
+<datalist id="medList"></datalist>
+<datalist id="patientList"></datalist>
+
+<script>
+const money=e=>"₱"+Number(e||0).toLocaleString(void 0,{minimumFractionDigits:2,maximumFractionDigits:2});
+const read=(e,t)=>{try{return JSON.parse(localStorage.getItem(e))??t}catch(e){return t}};
+const write=(e,t)=>{localStorage.setItem(e,JSON.stringify(t))};
+const esc=e=>String(e??"").replace(/[&<>"']/g,(e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[e])));
+const el=e=>document.getElementById(e);
+const today=()=>(new Date).toISOString().slice(0,10);
+
+const uid=()=>"CS-"+Math.floor(9e5*Math.random()+1e5);
+
+let slips=[],sales=[],nextOR=1,lastTxId=null,deletedSlips=[],deletedSales=[],liveInventory=[];
+
+const SVC_FALLBACK={FF:0,OCT:0,EYEGLASS:0,PHACO:0,"A-SCAN":0,CF:0,MEDCERT:0,AVASTIN:0,FA:0,ROS:0,LASER:0,ROP:0,EYLEA:0,"User Defined":0};
+const MED_FALLBACK={"OFLOXACIN+ DEXAMETHASONE ( FOXADEX)":0,"MOXIFLOXACIN (PLAXIMOB)":0,"MOXIFLOXACIN (OPMOXIN)":0,"OFLOXACIN (OFLOBIZ)":0,"TOBRAMYCIN (RAYTOBRAX)":0,ILENS:0,"MOXIFLOXACIN (VIGAMOX)":0,HYABAK:0,"PREDNISOLONE ACETATE (ZYSTER)":0,"SODIUM HYALURONATE (RAYMTEARS)":0,OLOPATADINE:0,"SODIUM CHLORIDE (HYPERSALT)":0,"PND (VISTACOM)":0,"ERYTHROMYCIN (OPTRYL)":0,"TOBRAMYCIN+DEXAMETHASONE OINTMENT":0,"TOBRAMYCIN+DEXAMETHASONE (TOBYN-D)":0,"PREDNISOLONE ACETATE (PREDBIZ)":0,"POTASIUM IODINE+SODIUM CHLORIDE (NUTRILENS)":0,"DORZOLAMIDE TIMOLOL (DORLAZ T)":0,"TIMOLOL (NORMOPRES)":0,GATIFLOXACIN:0,"DEXAMETHASONE+TOBRAMYCIN (DEXATOBRIN)":0,"POTASIUM IODINE+SODIUM CHLORID ( CELSUS)":0,BLEPHAGEL:0,"SODIUM HYALURONATE (GO-OPT)":0,"PREDNISOLONE ACETATE (PRED FORTE)":0,"MOXIIFLOXACIN (VISTAMOX)":0,"TRAVOPROST TIMOLOL (DUOTRAV)":0,"BRINZOLAMIDE+TIMOL;OL (AZARGA)":0,"LEVOFLOXACIN (OFTAQUIX)":0,"LEVOFLOXACIN+DEXAMETHASONE (DUCRESSA)":0,"DIQUAFOSOL SODIUM (DIQUAS -S)":0,"DIQUAFOSOL SODIUM (DIQUAS)":0,"HYPROMELLOSE (CELSUS)":0,"MOXIFLOXACIN (MOXFLOZ)":0,"MOXIFLOXACIN & DEXAMETHASONE (MOXFOZ DN)":0,"DEXTRAN + HYPROMELLOSE (NUMAREN)":0,"TIMOLOL MALEATE (CELSUS)":0,"NEPAFENAC (OPTANEP)":0,ACETAZOLAMIDE:0,CELECOXIB:0,CIPROFLAXACIN:0,CLINDAMYCIN:0,"CO-AMOXICLAB":0,"LUTEIN ZEAXANTHIN":0,METHYLPRED:0,PREDNISONE:0,RAMAVIT:0,"SODIUM ASCORBATE":0,ALA:0,"User Defined":0};
+
+function ensureCatalog(e,t,a,s){
+    let n=read(a,null);
+    if(n){
+        let l=read(s,0)||0,o=!1;
+        Object.entries(n).forEach((([e,a])=>{
+            "number"==typeof a?(l++,n[e]={price:a,sku:`${t}-${String(l).padStart(4,"0")}`},o=!0):(a.sku||(l++,a.sku=`${t}-${String(l).padStart(4,"0")}`,o=!0),"number"!=typeof a.price&&(a.price=Number(a.price||0),o=!0))
+        }));
+        Object.entries(e).forEach((([e,a])=>{e in n||(l++,n[e]={price:a,sku:`${t}-${String(l).padStart(4,"0")}`},o=!0)}));
+        if(o){write(a,n);write(s,l);}
+    }else{
+        n={};let l=0;
+        Object.entries(e).forEach((([e,a])=>{l++;n[e]={price:a,sku:`${t}-${String(l).padStart(4,"0")}`}}));
+        write(a,n);write(s,l);
+    }
+    return read(a,{})
+}
+
+let svcCatalog=ensureCatalog(SVC_FALLBACK,"SVC","cs.svcCatalog","cs.svcSkuCounter");
+let medCatalog=ensureCatalog(MED_FALLBACK,"MED","cs.medCatalog","cs.medSkuCounter");
+
+function updateDatalists(){
+    if(el("svcList")) el("svcList").innerHTML=Object.keys(svcCatalog).map((e=>`<option value="${esc(e)}"></option>`)).join("");
+    if(el("medList")) el("medList").innerHTML=Object.keys(medCatalog).map((e=>`<option value="${esc(e)}"></option>`)).join("");
+}
+
+function catalogLookup(e,t){
+    return("svc"===e?svcCatalog:medCatalog)[t]||null
+}
+
+const getDb=()=>firebase.firestore();
+
+function saveMeta(){return getDb().collection("oms_meta").doc("charge_slip_meta").set({nextOR:nextOR},{merge:!0}).catch(console.error)}
+function saveSlipToFirebase(e){return getDb().collection("oms_slips").doc(e.id).set(e).catch(console.error)}
+function deleteSlipFromFirebase(e){return getDb().collection("oms_slips").doc(e).delete().catch(console.error)}
+function saveSaleToFirebase(e){return getDb().collection("oms_sales").doc(e.id).set(e).catch(console.error)}
+function deleteSaleFromFirebase(e){return getDb().collection("oms_sales").doc(e).delete().catch(console.error)}
+function saveDeletedSlipToFirebase(e){return getDb().collection("oms_deletedSlips").doc(e.id).set(e).catch(console.error)}
+function deleteDeletedSlipFromFirebase(e){return getDb().collection("oms_deletedSlips").doc(e).delete().catch(console.error)}
+function saveDeletedSaleToFirebase(e){return getDb().collection("oms_deletedSales").doc(e.id).set(e).catch(console.error)}
+function deleteDeletedSaleFromFirebase(e){return getDb().collection("oms_deletedSales").doc(e).delete().catch(console.error)}
+
+async function fetchLiveInventory(){
+    try{
+        if(!firebase.apps.length)throw new Error("Firebase not ready");
+        const e=["inventory_medicines","inventory_eyeglasses","inventory_clinic_supplies","inventory_office_it","inventory_surgical_supplies"];
+        let t=[];
+        for(const a of e){
+            (await getDb().collection(a).get()).forEach((e=>{
+                const s=e.data();
+                if(s.description)t.push({sku:s.sku||e.id,desc:s.description,price:Number(s.price||0),col:a})
+            }))
+        }
+        liveInventory=t;
+        liveInventory.forEach((e=>{
+            "inventory_clinic_supplies"===e.col&&e.desc.toLowerCase().includes("service")?svcCatalog[e.desc]={sku:e.sku,price:e.price}:medCatalog[e.desc]={sku:e.sku,price:e.price}
+        }));
+        updateDatalists();
+        el("invStatusBadge").textContent="Inventory: Live Sync Active";
+        el("invStatusBadge").style.background="rgba(52, 199, 89, 0.2)";
+        el("invStatusBadge").style.color="#15803d";
+        el("invStatusBadge").style.borderColor="rgba(52, 199, 89, 0.3)";
+    }catch(e){
+        el("invStatusBadge").textContent="Inventory: Offline Mode";
+        el("invStatusBadge").style.background="rgba(245, 158, 11, 0.2)";
+        el("invStatusBadge").style.color="#b45309";
+        el("invStatusBadge").style.borderColor="rgba(245, 158, 11, 0.3)";
+        updateDatalists();
+    }
+}
+
+async function fetchLivePatients(){
+    try{
+        const e=new Set;
+        slips.forEach((t=>{t.patient&&e.add(t.patient.trim())}));
+
+        const t=["patients","oms_patients","appointments"];
+        for(const col of t) {
+            try {
+                const snap = await getDb().collection(col).limit(500).get();
+                snap.forEach(doc => {
+                    const a = doc.data();
+                    let s = a.name || a.patientName || a.patient || a.fullName || "";
+                    if (!s && a.lname) {
+                        s = `${a.lname}, ${a.fname || ""} ${a.mname ? a.mname.charAt(0)+"." : ""}`.trim().replace(/^,|,$/g, '').trim();
+                    }
+                    if(s) e.add(s);
+                });
+            } catch(err){}
+        }
+        const a=el("patientList");
+        if(a) a.innerHTML=Array.from(e).sort().map((e=>`<option value="${esc(e)}"></option>`)).join("");
+    }catch(e){}
+}
+
+async function fetchLiveDoctors(){
+    try{
+        const docRef = await getDb().collection("settings").doc("clinic").get();
+        let docs = [];
+        if(docRef.exists && docRef.data().physicians) {
+            docs = docRef.data().physicians;
+        } else {
+            docs = (window.OMS_CONFIG && window.OMS_CONFIG.physicians) || ["Attending Physician"];
+        }
+        const sel = el("doctorName");
+        if(sel) {
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="">-- Select Doctor --</option>' + docs.sort().map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+            if(currentVal) sel.value = currentVal;
+        }
+    } catch(e) {
+        console.error("Error loading doctors into Charge Slip", e);
+    }
+}
+
+async function loadAllFromFirebase(){
+    try{
+        const e=await getDb().collection("oms_meta").doc("charge_slip_meta").get();
+        if(e.exists)(nextOR=e.data().nextOR||1);
+        const t=await getDb().collection("oms_slips").orderBy("date","desc").get();
+        slips=t.docs.map((e=>e.data()));
+        const a=await getDb().collection("oms_sales").orderBy("date","desc").get();
+        sales=a.docs.map((e=>e.data()));
+        const s=await getDb().collection("oms_deletedSlips").orderBy("deletedAt","desc").get();
+        deletedSlips=s.docs.map((e=>e.data()));
+        const n=await getDb().collection("oms_deletedSales").orderBy("deletedAt","desc").get();
+        deletedSales=n.docs.map((e=>e.data()));
+
+        if(slips.length){
+            setSlipToForm(slips[0]);
+        }else{
+            el("slipNo").value=uid();
+            el("slipDate").value=today();
+        }
+        renderSlipHistory();
+        renderSales();
+        recalc();
+        refreshDashboard();
+        renderBin();
+        fetchLivePatients();
+    }catch(e){
+        if(!slips.length){
+            el("slipNo").value=uid();
+            el("slipDate").value=today();
+            recalc();
+        }
+    }
+}
+
+function addServiceRow(e){
+    e=e||{name:"",qty:1,price:0,sku:""};
+    const t=document.createElement("tr");
+    t.innerHTML=`
+        <td>
+            <input list="svcList" data-f="name" placeholder="Select service" value="${esc(e.name||"")}" style="margin-bottom:4px;">
+            <div data-f="badgeContainer" style="font-size:10px; color:var(--mut);"></div>
+        </td>
+        <td class="center"><input data-f="qty" type="number" value="${e.qty}"></td>
+        <td class="center"><input data-f="price" type="number" value="${e.price}"></td>
+        <td class="center"><span data-f="line" style="font-weight:700;">₱0.00</span></td>
+        <td style="text-align:right;"><button class="btn red small" data-act="del">Remove</button></td>`;
+
+    if(e.sku)t.dataset.sku=e.sku;
+    document.querySelector("#tblServices tbody").appendChild(t);
+    t.addEventListener("input",recalc);
+    t.querySelector("[data-act=del]").onclick=()=>{t.remove();recalc()};
+    t.querySelector("[data-f=name]").addEventListener("change",(()=>{
+        const e=catalogLookup("svc",t.querySelector("[data-f=name]").value.trim());
+        if(e){
+            t.querySelector("[data-f=price]").value=e.price||0;
+            t.dataset.sku=e.sku||"";
+        }
+        recalc();
+    }));
+    recalc();
+}
+
+function addMedRow(e){
+    e=e||{name:"",qty:1,price:0,sku:""};
+    const t=document.createElement("tr");
+    t.innerHTML=`
+        <td>
+            <input list="medList" data-f="name" placeholder="Select item" value="${esc(e.name||"")}" style="margin-bottom:4px;">
+            <div data-f="badgeContainer" style="font-size:10px; color:var(--mut);"></div>
+        </td>
+        <td class="center"><input data-f="qty" type="number" value="${e.qty}"></td>
+        <td class="center"><input data-f="price" type="number" value="${e.price}"></td>
+        <td class="center"><span data-f="line" style="font-weight:700;">₱0.00</span></td>
+        <td style="text-align:right;"><button class="btn red small" data-act="del">Remove</button></td>`;
+
+    if(e.sku)t.dataset.sku=e.sku;
+    document.querySelector("#tblMeds tbody").appendChild(t);
+    t.addEventListener("input",recalc);
+    t.querySelector("[data-act=del]").onclick=()=>{t.remove();recalc()};
+    t.querySelector("[data-f=name]").addEventListener("change",(()=>{
+        const e=t.querySelector("[data-f=name]").value.trim(),a=catalogLookup("med",e);
+        if(a){
+            t.querySelector("[data-f=price]").value=a.price||0;
+            t.dataset.sku=a.sku||"";
+            const s=liveInventory.find((t=>t.sku===a.sku||t.desc.toLowerCase()===e.toLowerCase()));
+            if(s){
+                t.dataset.sku=s.sku;
+                t.querySelector("[data-f=badgeContainer]").innerHTML=`<span style="color:var(--ok); font-weight:800;">📦 Auto-Deducts (${s.sku})</span>`;
+            }else{
+                t.querySelector("[data-f=badgeContainer]").innerHTML="Standard Item";
+            }
+        }
+        recalc();
+    }));
+    recalc();
+}
+
+function recalc(){
+    const e=[...document.querySelectorAll("#tblServices tbody tr")],t=[...document.querySelectorAll("#tblMeds tbody tr")];
+    let a=0,s=0;
+    e.forEach((e=>{
+        const t=Number(e.querySelector("[data-f=qty]").value||1),s=Number(e.querySelector("[data-f=price]").value||0);
+        e.querySelector("[data-f=line]").textContent=money(t*s);
+        a+=t*s;
+    }));
+    t.forEach((e=>{
+        const t=Number(e.querySelector("[data-f=qty]").value||1),a=Number(e.querySelector("[data-f=price]").value||0);
+        e.querySelector("[data-f=line]").textContent=money(t*a);
+        s+=t*a;
+    }));
+    el("svcTotal").textContent=money(a);
+    el("medTotal").textContent=money(s);
+    const discountOn=!!el("scPwdDiscount")?.checked;
+    const discount=discountOn?s*.2:0;
+    if(el("discountAmt"))el("discountAmt").textContent="-"+money(discount);
+    el("grandTotal").textContent=money(a+s-discount);
+    updateBalanceView();
+}
+
+function currentSlipFromForm(){
+    const e=[...document.querySelectorAll("#tblServices tbody tr")].map((e=>({sku:e.dataset.sku||"",name:e.querySelector("[data-f=name]").value.trim(),qty:Number(e.querySelector("[data-f=qty]").value||0),price:Number(e.querySelector("[data-f=price]").value||0)}))).filter((e=>e.name));
+    const t=[...document.querySelectorAll("#tblMeds tbody tr")].map((e=>({sku:e.dataset.sku||"",name:e.querySelector("[data-f=name]").value.trim(),qty:Number(e.querySelector("[data-f=qty]").value||0),price:Number(e.querySelector("[data-f=price]").value||0)}))).filter((e=>e.name));
+    const a=e.reduce(((e,t)=>e+t.qty*t.price),0);
+    const s=t.reduce(((e,t)=>e+t.qty*t.price),0);
+    const scPwd=!!el("scPwdDiscount")?.checked;
+    const discount=scPwd?s*.2:0;
+    return{id:el("slipNo").value||uid(),date:el("slipDate").value||today(),patient:el("patientName").value.trim(),doctor:el("doctorName")?.value.trim()||"",services:e,medicines:t,scPwdDiscount:scPwd,totals:{svc:a,med:s,discount:discount,total:a+s-discount},lastUpdated:(new Date).toISOString()}
+}
+
+function saveSlip(){
+    const e=currentSlipFromForm(),t=slips.findIndex((t=>t.id===e.id));
+    let a;
+    if(t>=0){
+        const s=slips[t];
+        a=Object.assign({},s,e);
+        a.payments=Array.isArray(s.payments)?s.payments.slice():[];
+        a.totals=e.totals;
+        a.paid=a.payments.reduce(((e,t)=>e+Number(t.amount||0)),0);
+        a.status=s.voided?"VOIDED":a.paid>=a.totals.total?"PAID":a.paid>0?"PARTIAL":"OPEN";
+        slips[t]=a;
+    }else{
+        a=Object.assign({payments:[],paid:0,status:"OPEN"},e);
+        slips.unshift(a);
+    }
+    write("cs.slips",slips);
+    saveSlipToFirebase(a);
+    renderSlipHistory();
+    if("dash"===document.querySelector(".tab.active")?.dataset.view)refreshDashboard();
+    fetchLivePatients();
+    return a;
+}
+
+function setSlipToForm(e){
+    el("slipNo").value=e.id;
+    el("slipDate").value=e.date;
+    el("patientName").value=e.patient;
+    if(el("doctorName")) el("doctorName").value=e.doctor||"";
+    el("slipStatus").textContent=e.status||"OPEN";
+    el("slipStatus").className="badge "+("PAID"===e.status?"good":"PARTIAL"===e.status?"warn":"");
+    document.querySelector("#tblServices tbody").innerHTML="";
+    document.querySelector("#tblMeds tbody").innerHTML="";
+    (e.services||[]).forEach(addServiceRow);
+    (e.medicines||[]).forEach(addMedRow);
+    if(el("scPwdDiscount"))el("scPwdDiscount").checked=!!e.scPwdDiscount;
+    recalc();
+    const t=(e.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0);
+    el("alreadyPaid").textContent=money(t);
+    el("currentBalance").textContent=money(Math.max(0,(e.totals?.total||0)-t));
+    el("lastOR").textContent=(e.payments||[]).slice(-1)[0]?.or||"—";
+}
+
+function updateBalanceView(){
+    const e=currentSlipFromForm(),t=slips.find((t=>t.id===e.id)),a=(t?.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0);
+    el("alreadyPaid").textContent=money(a);
+    el("currentBalance").textContent=money(Math.max(0,(e.totals?.total||0)-a));
+}
+
+function buildItemsFromSlip(e){
+    const t=[];
+    (e.services||[]).forEach((e=>t.push({sku:e.sku||catalogLookup("svc",e.name)?.sku||"",name:e.name,qty:Number(e.qty||0),unit:Number(e.price||0),line:Number(e.qty||0)*Number(e.price||0)})));
+    (e.medicines||[]).forEach((e=>t.push({sku:e.sku||catalogLookup("med",e.name)?.sku||"",name:e.name,qty:Number(e.qty||0),unit:Number(e.price||0),line:Number(e.qty||0)*Number(e.price||0)})));
+    return t;
+}
+
+async function recordPaymentAmount(e){
+    el("btnRecordPayment").textContent="Processing...";
+    el("btnRecordPayment").disabled=!0;
+    try{
+        const t=saveSlip();
+        const a=(t.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0);
+        const s=Math.max(0,(t.totals?.total||0)-a);
+        let n=Number(e||0);
+        if(isNaN(n)||n<0)n=0;
+        if(n>s)n=s;
+        const l=el("payMethod").value;
+        let o=el("payOR").value.trim();
+        if(!o){
+            o=String(nextOR).padStart(6,"0");
+            nextOR++;
+            saveMeta();
+        }
+        const i={id:"TX-"+Date.now(),slipId:t.id,date:(new Date).toISOString(),or:o,patient:t.patient,doctor:t.doctor||"",method:l,amount:n,remarks:el("payRemarks").value||"",items:buildItemsFromSlip(t)};
+        t.payments=t.payments||[];
+        t.payments.push(i);
+        const r=t.payments.reduce(((e,t)=>e+Number(t.amount||0)),0);
+        t.paid=r;
+        t.status=t.voided?"VOIDED":r>=(t.totals?.total||0)?"PAID":r>0?"PARTIAL":"OPEN";
+        const d=slips.findIndex((e=>e.id===t.id));
+        if(d>=0){slips[d]=t}else{slips.unshift(t)}
+        write("cs.slips",slips);
+        sales.unshift(i);
+        write("cs.sales",sales);
+        lastTxId=i.id;
+        el("btnPrintLastReceipt").disabled=!1;
+        setSlipToForm(t);
+        renderSales();
+        renderSlipHistory();
+        if("dash"===document.querySelector(".tab.active")?.dataset.view)refreshDashboard();
+        if(n>0)printReceipt(i);
+
+        const c=getDb().batch();
+        c.set(getDb().collection("oms_slips").doc(t.id),t,{merge:!0});
+        c.set(getDb().collection("oms_sales").doc(i.id),i);
+        i.items.forEach((e=>{
+            const t=e.name||e.desc||e.item||"";
+            const a=liveInventory.find((a=>e.sku&&a.sku===e.sku||a.desc&&t&&a.desc.toLowerCase()===t.toLowerCase()));
+            if(a&&e.qty>0){
+                c.set(getDb().collection(a.col).doc(a.sku),{sold:firebase.firestore.FieldValue.increment(e.qty),closing:firebase.firestore.FieldValue.increment(-e.qty),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:!0});
+            }
+        }));
+        await c.commit();
+    }catch(e){
+        console.error(e);
+    }finally{
+        el("btnRecordPayment").textContent="Record Payment";
+        el("btnRecordPayment").disabled=!1;
+    }
+}
+
+function recordPayment(e=!1){
+    const t=saveSlip(),a=(t.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0),s=Math.max(0,(t.totals?.total||0)-a);
+    if(e)return recordPaymentAmount(s);
+    return recordPaymentAmount(Number(el("payAmount").value||0))
+}
+
+function settleBalance(){
+    const e=saveSlip(),t=(e.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0),a=Math.max(0,(e.totals?.total||0)-t);
+    if(a<=0)return void alert("This slip is already fully paid.");
+    const s=prompt(`Remaining balance is ₱${Number(a).toFixed(2)}.\nEnter amount to accept now:`,Number(a).toFixed(2));
+    if(null===s)return;
+    recordPaymentAmount(Number(String(s).replace(/[^0-9.\-]/g,"")))
+}
+
+function fmtDateTime(e){
+    try{
+        const t=e?.toDate?e.toDate():e instanceof Date?e:new Date(e);
+        return isNaN(t.getTime())?"":t.toLocaleString()
+    }catch(e){return""}
+}
+
+function computeTotals(e){
+    const t=(e.services||[]).reduce(((e,t)=>e+Number(t.qty||0)*Number(t.price||0)),0),a=(e.medicines||[]).reduce(((e,t)=>e+Number(t.qty||0)*Number(t.price||0)),0);
+    const discount=e.scPwdDiscount?a*.2:0;
+    e.totals={svc:t,med:a,discount:discount,total:t+a-discount};
+    const s=(e.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0);
+    e.paid=s;
+    e.status=e.voided?"VOIDED":s>=e.totals.total?"PAID":s>0?"PARTIAL":"OPEN";
+    return e;
+}
+
+function renderSlipHistory(){
+    slips=(slips||[]).map((e=>computeTotals(e)));
+    write("cs.slips",slips);
+    el("slipCount").textContent=String(slips.length);
+    const e=el("histTable").querySelector("tbody");
+    e.innerHTML="";
+    slips.forEach((t=>{
+        const a=(t.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0),s=Math.max(0,(t.totals?.total||0)-a),n=document.createElement("tr");
+        n.innerHTML=`
+            <td>${t.date}</td><td>${t.id}</td><td style="font-weight:700;">${t.patient||""}</td>
+            <td><span class="badge" style="background:#e0f2fe;color:#0284c7;border:none;">${t.doctor||"—"}</span></td>
+            <td class="right">${money(t.totals?.svc||0)}</td><td class="right">${money(t.totals?.med||0)}</td>
+            <td class="right" style="font-weight:700;">${money(t.totals?.total||0)}</td><td class="right">${money(a)}</td>
+            <td class="right" style="color:var(--red);">${money(s)}</td>
+            <td><span class="badge ${"PAID"===t.status?"good":"PARTIAL"===t.status?"warn":""}">${t.status||"OPEN"}</span></td>
+            <td>
+                <div class="toolbar">
+                    <button class="btn small" data-act="open" data-id="${t.id}">Open</button>
+                    <button class="btn small" data-act="print" data-id="${t.id}">Print</button>
+                    <button class="btn red small" data-act="delete" data-id="${t.id}">Del</button>
+                </div>
+            </td>`;
+        n.querySelectorAll("button").forEach((e=>{
+            e.onclick=()=>{
+                const t=e.dataset.act,a=e.dataset.id,s=slips.find((e=>e.id===a));
+                if(s){
+                    if("open"===t){setSlipToForm(s);window.scrollTo(0,0);}
+                    else if("print"===t){computeTotals(s);printSlipFrom(s);}
+                    else if("delete"===t){if(confirm("Move to Recycle Bin?"))window.softDeleteSlip(s.id);}
+                }
+            }
+        }));
+        e.appendChild(n);
+    }));
+}
+
+function buildFlatSaleRows(){
+    const e=[];
+    (sales||[]).slice().sort(((e,t)=>(t.ts||0)-(e.ts||0))).forEach((t=>{
+        const a=(slips||[]).find((e=>e.id===t.slipId));
+        const s=a&&a.totals&&isFinite(a.totals.total)?Number(a.totals.total):Number(t.totalBill||0);
+        const n=a&&isFinite(a.paid)?Number(a.paid):Number(t.amount||0);
+        const l=Math.max(0,(s||0)-(n||0));
+        const o=s&&n>=s?"PAID":n>0?"PARTIAL":"OPEN";
+        const d=t.doctor||a?.doctor||"";
+        let i=[];
+        if(a&&Array.isArray(a.services)&&a.services.length){
+            i=i.concat(a.services.map((e=>{
+                const t=Number(e.unitCost??e.unitPrice??e.price??0),a=Number(e.qty??e.quantity??0),s=Number(e.subtotal??t*a);
+                return{type:"Service",desc:e.type||e.name||"",qty:a,unit:t,sub:s}
+            })));
+        }
+        if(a&&Array.isArray(a.medicines)&&a.medicines.length){
+            i=i.concat(a.medicines.map((e=>{
+                const t=Number(e.unitCost??e.unitPrice??e.price??0),a=Number(e.qty??e.quantity??0),s=Number(e.subtotal??t*a);
+                return{type:"Medicine",desc:e.name||e.type||"",qty:a,unit:t,sub:s}
+            })));
+        }
+        if(!i.length){
+            (t.items&&t.items.length?t.items:[]).forEach((e=>{
+                const t=e.name||e.item||e.desc||"",a=Number(e.qty??e.quantity??0),s=Number(e.unit??e.unitCost??e.unitPrice??e.price??0),n=Number(e.line??e.subtotal??s*a),l=!!catalogLookup("svc",t);
+                i.push({type:l?"Service":"Medicine",desc:t,qty:a,unit:s,sub:n});
+            }));
+        }
+        if(!i.length)i.push({type:"",desc:"(No line items)",qty:"",unit:"",sub:""});
+
+        i.forEach((n=>{
+            e.push({id:t.id,ts:t.ts||t.date||"",or:t.or||"",slipId:t.slipId||"",patient:t.patient||a?.patient||"",doctor:d,totalBill:s||0,method:t.method||"",amountPaid:Number(t.amount||0),balance:l,itemType:n.type,desc:n.desc,qty:n.qty,unit:n.unit,subtotal:n.sub,status:o})
+        }));
+    }));
+    return e;
+}
+
+function renderSales(){
+    const e=el("salesTable").querySelector("tbody");
+    const t=(el("salesSearch")?.value||"").toLowerCase().trim();
+    const a=buildFlatSaleRows();
+    const s=t?a.filter((e=>`${e.or} ${e.slipId} ${e.patient} ${e.doctor} ${e.method} ${e.itemType} ${e.desc}`.toLowerCase().includes(t))):a;
+
+    el("salesCount").textContent=s.length?`${s.length} line item(s)`:"";
+    e.innerHTML=s.map((e=>`
+        <tr>
+            <td>${esc(fmtDateTime(e.ts))}</td><td>${esc(e.or)}</td><td>${esc(e.slipId)}</td>
+            <td style="font-weight:700;">${esc(e.patient)}</td>
+            <td><span class="badge" style="background:#e0f2fe;color:#0284c7;border:none;">${esc(e.doctor||"—")}</span></td>
+            <td class="right">${money(e.totalBill)}</td>
+            <td><span style="font-size:10px; border:1px solid var(--hairline); border-radius:4px; padding:2px 6px;">${esc(e.method)}</span></td>
+            <td class="right" style="color:var(--ok); font-weight:700;">${money(e.amountPaid)}</td><td class="right" style="color:var(--red);">${money(e.balance)}</td>
+            <td><span style="font-size:10px; color:var(--mut);">${esc(e.itemType)}</span></td><td>${esc(e.desc)}</td>
+            <td class="right">${esc(e.qty)}</td><td class="right">${money(e.unit)}</td><td class="right">${money(e.subtotal)}</td>
+            <td><span class="badge ${"PAID"===e.status?"good":"PARTIAL"===e.status?"warn":""}">${esc(e.status)}</span></td>
+            <td><button class="btn red small" data-act="delSale" data-id="${esc(e.id)}">Del</button></td>
+        </tr>
+    `)).join("");
+    window.__salesFlatRows=s;
+    e.querySelectorAll('button[data-act="delSale"]').forEach((e=>{
+        e.onclick=()=>{
+            const t=e.dataset.id;
+            if(t&&confirm("Move this receipt to the Recycle Bin?"))window.softDeleteSale(t);
+        }
+    }));
+}
+
+function renderBin(){
+    const e=el("binTable").querySelector("tbody");
+    e.innerHTML="";
+    deletedSlips.forEach((t=>{
+        const a=document.createElement("tr");
+        a.innerHTML=`<td>${t.date}</td><td>${t.id}</td><td>${t.patient}</td><td class="right">${money(t.totals?.total)}</td><td>${new Date(t.deletedAt).toLocaleString()}</td>
+        <td><button class="btn small ok" onclick="window.restoreSlipFromBin('${t.id}')">Restore</button><button class="btn small red" onclick="if(confirm('Delete forever?')) window.purgeSlipFromBin('${t.id}')">Purge</button></td>`;
+        e.appendChild(a);
+    }));
+    const t=el("binReceipts").querySelector("tbody");
+    t.innerHTML="";
+    deletedSales.forEach((e=>{
+        const a=document.createElement("tr");
+        a.innerHTML=`<td>${new Date(e.date||e.ts).toLocaleString()}</td><td>${e.or}</td><td>${e.slipId}</td><td>${e.patient}</td><td class="right">${money(e.amount)}</td><td>${new Date(e.deletedAt).toLocaleString()}</td>
+        <td><button class="btn small ok" onclick="window.restoreSale('${e.id}')">Restore</button><button class="btn small red" onclick="if(confirm('Delete forever?')) window.purgeSale('${e.id}')">Purge</button></td>`;
+        t.appendChild(a);
+    }));
+}
+
+function exportCSV(e,t){
+    const a=e.map((e=>e.map((e=>String(e).replace(/"/g,'""'))).map((e=>`"${e}"`)).join(","))).join("\n");
+    const s=new Blob(["\ufeff"+a],{type:"text/csv;charset=utf-8;"});
+    const n=document.createElement("a");
+    n.href=URL.createObjectURL(s);
+    n.download=t;
+    n.click();
+    setTimeout((()=>URL.revokeObjectURL(n.href)),500);
+}
+
+function exportSalesSummary(){
+    const e=window.__salesFlatRows&&window.__salesFlatRows.length?window.__salesFlatRows:buildFlatSaleRows();
+    const t=[["Date/Time","OR","Slip","Patient","Doctor","Total Bill","Method","Amount Paid","Balance","Item Type","Description","Qty","Unit Price","Subtotal","Status"]];
+    e.forEach((e=>{
+        t.push([fmtDateTime(e.ts),e.or,e.slipId,e.patient,e.doctor,Number(e.totalBill||0).toFixed(2),e.method,Number(e.amountPaid||0).toFixed(2),Number(e.balance||0).toFixed(2),e.itemType,e.desc,e.qty,Number(e.unit||0).toFixed(2),Number(e.subtotal||0).toFixed(2),e.status])
+    }));
+    exportCSV(t,"sales_pos_report.csv");
+}
+
+function exportLineItems(){
+    const e=[["Date","OR","Slip","Patient","Doctor","Type","SKU","Name","Qty","Unit Price","Subtotal"]];
+    sales.forEach((t=>{
+        const a=slips.find((e=>e.id===t.slipId));
+        (t.items&&t.items.length?t.items:buildItemsFromSlip(a||currentSlipFromForm())).forEach((s=>e.push([new Date(t.date).toLocaleString(),t.or,t.slipId,t.patient,t.doctor||a?.doctor||"","ITEM",s.sku||"",s.name,s.qty,Number(s.unit).toFixed(2),Number(s.line).toFixed(2)])));
+    }));
+    exportCSV(e,"sales_line_items.csv");
+}
+
+// ----------------------------------------------------
+// DYNAMIC PRINT RECEIPT
+// ----------------------------------------------------
+function printReceipt(e){
+    const clinicName = window.OMS_CONFIG?.clinicName || "Clinic";
+    const addressInfo = window.OMS_CONFIG?.address || "";
+
+    const t=slips.find((t=>t.id===e.slipId))||currentSlipFromForm();
+    const a=e.items&&e.items.length?e.items:buildItemsFromSlip(t);
+    const s=t.totals?.total||a.reduce(((e,t)=>e+t.line),0);
+    const n=(t.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0);
+    const l=Math.max(0,s-n);
+    const o=a.map((e=>`<tr><td>${e.sku||""}</td><td>${e.name}</td><td class="p-center">${e.qty}</td><td class="p-center">${Number(e.unit).toFixed(2)}</td><td class="p-center">${Number(e.line).toFixed(2)}</td></tr>`)).join("");
+
+    const i=`<div class="p-wrap"><h2 class="p-h">${clinicName}</h2><div class="p-meta">${addressInfo}</div><hr><div><b>OR No.:</b> ${e.or} &nbsp; | &nbsp; <b>Date:</b> ${new Date(e.date).toLocaleString()}</div><div><b>Slip:</b> ${t.id} &nbsp; | &nbsp; <b>Patient:</b> ${e.patient}</div><div><b>Doctor:</b> ${e.doctor||t.doctor||"&mdash;"}</div><div class="p-sec">Items</div><table class="p-table"><thead><tr><th>SKU</th><th>Description</th><th class="p-center">Qty</th><th class="p-center">Unit Price</th><th class="p-center">Subtotal</th></tr></thead><tbody>${o}</tbody></table><div style="margin-top:8px; text-align:right;"><div><b>Slip Total:</b> ${money(s)}</div><div><b>Paid to Date:</b> ${money(n)}</div><div><b>Balance:</b> ${money(l)}</div></div></div>`;
+
+    const r=window.open("","_blank");
+    r.document.write('<!doctype html><meta charset="utf-8"><title>Receipt</title><style>'+document.querySelector("style").innerHTML+"</style>"+i);
+    r.document.close();
+    r.onload=()=>{r.focus();r.print();setTimeout((()=>r.close()),300)}
+}
+
+// ----------------------------------------------------
+// DYNAMIC PRINT SLIP
+// ----------------------------------------------------
+function printSlipFrom(e){
+    const clinicName = window.OMS_CONFIG?.clinicName || "Clinic";
+
+    const t=buildItemsFromSlip(e).map((e=>`<tr><td>${e.sku||""}</td><td>${e.name}</td><td class="p-center">${e.qty}</td><td class="p-center">${Number(e.unit).toFixed(2)}</td><td class="p-center">${Number(e.line).toFixed(2)}</td></tr>`)).join("");
+
+    const a=`<div class="p-wrap"><h2 class="p-h">${clinicName}</h2><div class="p-meta">Charge Slip • ${e.id}</div><div class="p-meta">Patient: ${e.patient} • Doctor: ${e.doctor||"&mdash;"} • Date: ${e.date}</div><table class="p-table"><thead><tr><th>SKU</th><th>Description</th><th class="p-center">Qty</th><th class="p-center">Unit Price</th><th class="p-center">Subtotal</th></tr></thead><tbody>${t}</tbody></table><div style="margin-top:8px; text-align:right;"><b>Total:</b> ${money(e.totals.total)}</div></div>`;
+
+    const s=window.open("","_blank");
+    s.document.write('<!doctype html><meta charset="utf-8"><title>Slip</title><style>'+document.querySelector("style").innerHTML+"</style>"+a);
+    s.document.close();
+    s.onload=()=>{s.focus();s.print();setTimeout((()=>s.close()),300)}
+}
+
+function parseISODate(e){if(!e)return null;if(/^\d{4}-\d{2}-\d{2}$/.test(e))return new Date(e+"T00:00:00");const t=new Date(e);return isNaN(t.getTime())?null:t}
+function startOfMonth(e){const[t,a]=e.split("-").map(Number);return new Date(t,a-1,1,0,0,0,0)}
+function endOfMonth(e){const[t,a]=e.split("-").map(Number);return new Date(t,a,0,23,59,59,999)}
+function startOfYear(e){return new Date(Number(e),0,1,0,0,0,0)}
+function endOfYear(e){return new Date(Number(e),11,31,23,59,59,999)}
+
+function syncDashControlsAndRefresh(){
+    const e=el("dashMode")?.value||"month";
+    const t=(e,t)=>{const a=el(e);if(a)a.style.display=t?"flex":"none"};
+    t("dashCtlMonth","month"===e);
+    t("dashCtlRange","range"===e);
+    t("dashCtlDay","day"===e);
+    t("dashCtlYear","year"===e);
+
+    const a=new Date;
+    if(el("dashMonth")&&!el("dashMonth").value)el("dashMonth").value=a.toISOString().slice(0,7);
+    if(el("dashDay")&&!el("dashDay").value)el("dashDay").value=a.toISOString().slice(0,10);
+    if(el("dashYear")&&!el("dashYear").value)el("dashYear").value=String(a.getFullYear());
+    if(el("dashFrom")&&!el("dashFrom").value){
+        const e=new Date(a.getFullYear(),a.getMonth(),1);
+        el("dashFrom").value=e.toISOString().slice(0,10);
+    }
+    if(el("dashTo")&&!el("dashTo").value)el("dashTo").value=a.toISOString().slice(0,10);
+    refreshDashboard();
+}
+
+function getDashWindow(){
+    const e=el("dashMode")?.value||"month",t=new Date;
+    let a=null,s=null,n="";
+    if("running"===e){a=null;s=null;n="All time";}
+    else if("day"===e){
+        const e=parseISODate(el("dashDay")?.value)||new Date(t.toISOString().slice(0,10)+"T00:00:00");
+        a=new Date(e.getFullYear(),e.getMonth(),e.getDate(),0,0,0,0);
+        s=new Date(e.getFullYear(),e.getMonth(),e.getDate(),23,59,59,999);
+        n=e.toISOString().slice(0,10);
+    }else if("range"===e){
+        const e=parseISODate(el("dashFrom")?.value),t=parseISODate(el("dashTo")?.value);
+        if(e)a=new Date(e.getFullYear(),e.getMonth(),e.getDate(),0,0,0,0);
+        if(t)s=new Date(t.getFullYear(),t.getMonth(),t.getDate(),23,59,59,999);
+        n=`${el("dashFrom")?.value||""} to ${el("dashTo")?.value||""}`;
+    }else if("year"===e){
+        const e=Number(el("dashYear")?.value||t.getFullYear());
+        a=startOfYear(e);s=endOfYear(e);n=String(e);
+    }else{
+        const e=el("dashMonth")?.value||t.toISOString().slice(0,7);
+        a=startOfMonth(e);s=endOfMonth(e);n=e;
+    }
+    return{mode:e,from:a,to:s,label:n}
+}
+
+function inWindow(e,t){return!!e&&(!(t.from&&e<t.from)&&!(t.to&&e>t.to))}
+
+function refreshDashboard(){
+    const e=getDashWindow(),t=(sales||[]).filter((t=>inWindow(parseISODate(t.date||t.ts),e))),a=t.reduce(((e,t)=>e+Number(t.amount||0)),0),s=t.length,n=new Set(t.map((e=>e.patient)).filter(Boolean)).size;
+    el("kpiPaid").textContent=money(a);
+    el("kpiCount").textContent=String(s);
+    el("kpiAvg").textContent=money(s?a/s:0);
+    el("kpiPatients").textContent=String(n);
+
+    const l=(slips||[]).filter((t=>inWindow(parseISODate(t.date),e))),o=l.reduce(((e,t)=>e+Number(t.totals?.total||0)),0),i=l.reduce(((e,t)=>{const a=(t.payments||[]).reduce(((e,t)=>e+Number(t.amount||0)),0);return e+Math.max(0,Number(t.totals?.total||0)-a)}),0);
+    if(el("kpiBilled"))el("kpiBilled").textContent=money(o);
+    if(el("kpiBalance"))el("kpiBalance").textContent=money(i);
+
+    const r={},d={},c={},u={};
+    const docCFQty={}, docCFRev={};
+
+    function p(e,t,a){
+        const s=el(e).querySelector("tbody");
+        if(!s) return;
+        s.innerHTML="";
+        Object.keys(t).sort(((e,a)=>t[a]-t[e])).slice(0,12).forEach((e=>{
+            const n=document.createElement("tr");
+            n.innerHTML=`<td>${e}</td><td class="right">${t[e]}</td><td class="right" style="font-weight:700;">${money(a[e]||0)}</td>`;
+            s.appendChild(n);
+        }));
+    }
+
+    t.forEach((e=>{
+        const t=slips.find((t=>t.id===e.slipId));
+        const docName = e.doctor || t?.doctor || "Unassigned";
+
+        (e.items&&e.items.length?e.items:buildItemsFromSlip(t||{})).forEach((e=>{
+            const a=e.name,s=Number(e.qty||0),n=Number(e.line||0);
+
+            if (a.toUpperCase() === "CF" || a.toUpperCase() === "CONSULTATION FEE" || a.toUpperCase().includes("CONSULTATION")) {
+                docCFQty[docName] = (docCFQty[docName] || 0) + s;
+                docCFRev[docName] = (docCFRev[docName] || 0) + n;
+            }
+
+            if(catalogLookup("svc",a)||(t?.services||[]).find((e=>e.name===a))){
+                r[a]=(r[a]||0)+s;d[a]=(d[a]||0)+n;
+            }else{
+                c[a]=(c[a]||0)+s;u[a]=(u[a]||0)+n;
+            }
+        }))
+    }));
+
+    p("tblTopSvc",r,d);
+    p("tblTopMed",c,u);
+    p("tblDoctorCF", docCFQty, docCFRev);
+    window.__dashWindow=e;
+}
+
+window.softDeleteSlip=function(e){
+    const t=slips.find((t=>t.id===e));
+    if(!t)return;
+    const a=Object.assign({deletedAt:(new Date).toISOString()},t);
+    deletedSlips.unshift(a);
+    saveDeletedSlipToFirebase(a);
+    const s=[];
+    sales.forEach((t=>{
+        if(t.slipId===e){
+            const e=Object.assign({deletedAt:(new Date).toISOString()},t);
+            deletedSales.unshift(e);
+            saveDeletedSaleToFirebase(e);
+            deleteSaleFromFirebase(t.id);
+        }else{
+            s.push(t);
+        }
+    }));
+    sales=s;
+    slips=slips.filter((t=>t.id!==e));
+    deleteSlipFromFirebase(e);
+    if(el("slipNo").value===e&&document.getElementById("btnNewSlip"))document.getElementById("btnNewSlip").click();
+    renderSlipHistory();
+    renderSales();
+    renderBin();
+    if("dash"===document.querySelector(".tab.active")?.dataset.view)refreshDashboard();
+}
+
+window.restoreSlipFromBin=function(e){
+    const t=deletedSlips.findIndex((t=>t.id===e));
+    if(t<0)return;
+    const a=deletedSlips.splice(t,1)[0];
+    deleteDeletedSlipFromFirebase(a.id);
+    write("cs.deletedSlips",deletedSlips);
+    delete a.deletedAt;
+    slips.unshift(a);
+    saveSlipToFirebase(a);
+    write("cs.slips",slips);
+    const s=[];
+    deletedSales.forEach((t=>{
+        if(t.slipId===e){
+            delete t.deletedAt;
+            sales.unshift(t);
+            saveSaleToFirebase(t);
+            deleteDeletedSaleFromFirebase(t.id);
+        }else{
+            s.push(t);
+        }
+    }));
+    deletedSales=s;
+    write("cs.deletedSales",deletedSales);
+    write("cs.sales",sales);
+    renderSlipHistory();
+    renderSales();
+    renderBin();
+    if("dash"===document.querySelector(".tab.active")?.dataset.view)refreshDashboard();
+}
+
+window.purgeSlipFromBin=function(e){
+    deletedSlips.forEach((t=>{if(t.id===e)deleteDeletedSlipFromFirebase(t.id)}));
+    deletedSlips=deletedSlips.filter((t=>t.id!==e));
+    write("cs.deletedSlips",deletedSlips);
+    deletedSales.forEach((t=>{if(t.slipId===e)deleteDeletedSaleFromFirebase(t.id)}));
+    deletedSales=deletedSales.filter((t=>t.slipId!==e));
+    write("cs.deletedSales",deletedSales);
+    renderBin();
+}
+
+window.softDeleteSale=function(e){
+    const t=(sales||[]).findIndex((t=>t.id===e));
+    if(t<0)return;
+    const a=sales.splice(t,1)[0];
+    a.deletedAt=(new Date).toISOString();
+    deletedSales.unshift(a);
+    write("cs.sales",sales);
+    write("cs.deletedSales",deletedSales);
+    deleteSaleFromFirebase(a.id);
+    saveDeletedSaleToFirebase(a);
+    const s=(slips||[]).find((e=>e.id===a.slipId));
+    if(s){
+        s.payments=(s.payments||[]).filter((t=>t.id!==e));
+        s.paid=s.payments.reduce(((e,t)=>e+Number(t.amount||0)),0);
+        s.status=s.voided?"VOIDED":s.paid>=(s.totals?.total||0)?"PAID":s.paid>0?"PARTIAL":"OPEN";
+        write("cs.slips",slips);
+        saveSlipToFirebase(s);
+    }
+    renderSales();
+    renderSlipHistory();
+    renderBin();
+    if("dash"===document.querySelector(".tab.active")?.dataset.view)refreshDashboard();
+}
+
+window.restoreSale=function(e){
+    const t=(deletedSales||[]).findIndex((t=>t.id===e));
+    if(t<0)return;
+    const a=deletedSales.splice(t,1)[0];
+    write("cs.deletedSales",deletedSales);
+    sales.unshift(a);
+    write("cs.sales",sales);
+    saveSaleToFirebase(a);
+    deleteDeletedSaleFromFirebase(a.id);
+    const s=(slips||[]).find((e=>e.id===a.slipId));
+    if(s){
+        s.payments=s.payments||[];
+        s.payments.push(a);
+        s.paid=s.payments.reduce(((e,t)=>e+Number(t.amount||0)),0);
+        s.status=s.voided?"VOIDED":s.paid>=(s.totals?.total||0)?"PAID":s.paid>0?"PARTIAL":"OPEN";
+        write("cs.slips",slips);
+        saveSlipToFirebase(s);
+    }
+    renderSales();
+    renderSlipHistory();
+    renderBin();
+    if("dash"===document.querySelector(".tab.active")?.dataset.view)refreshDashboard();
+}
+
+window.purgeSale=function(e){
+    deletedSales.forEach((t=>{if(t.id===e)deleteDeletedSaleFromFirebase(t.id)}));
+    deletedSales=(deletedSales||[]).filter((t=>t.id!==e));
+    write("cs.deletedSales",deletedSales);
+    renderBin();
+}
+
+document.addEventListener("DOMContentLoaded",(async ()=>{
+    const allowed = await (window.OMSAuth?.requireModuleAccess?.("chargeSlipPos", {
+        redirect: false,
+        hideSelector: ".wrap",
+        messageSelector: "#accessDenied",
+        message: "This account does not have access to Charge Slip / POS."
+    }) || Promise.resolve(true));
+    if (!allowed) return;
+
+    document.querySelectorAll(".tab").forEach((e=>e.onclick=()=>{
+        document.querySelectorAll(".tab").forEach((e=>e.classList.remove("active")));
+        e.classList.add("active");
+        document.querySelectorAll("[id^=view-]").forEach((e=>e.style.display="none"));
+        el("view-"+e.dataset.view).style.display="block";
+        if("dash"===e.dataset.view)try{syncDashControlsAndRefresh()}catch(e){}
+        if("bin"===e.dataset.view)renderBin();
+    }));
+
+    if(el("dashMonth"))el("dashMonth").onchange=()=>refreshDashboard();
+    if(el("dashMode"))el("dashMode").onchange=()=>syncDashControlsAndRefresh();
+    if(el("dashFrom"))el("dashFrom").onchange=()=>{};
+    if(el("dashTo"))el("dashTo").onchange=()=>{};
+    if(el("dashDay"))el("dashDay").onchange=()=>refreshDashboard();
+    if(el("dashYear"))el("dashYear").onchange=()=>refreshDashboard();
+    if(el("btnDashApplyRange"))el("btnDashApplyRange").onclick=()=>refreshDashboard();
+
+    if(el("btnDashThisMonth"))el("btnDashThisMonth").onclick=()=>{
+        if(el("dashMode"))el("dashMode").value="month";
+        el("dashMonth").value=(new Date).toISOString().slice(0,7);
+        syncDashControlsAndRefresh();
+    };
+
+    if(el("addService"))el("addService").onclick=()=>addServiceRow();
+    if(el("addMed"))el("addMed").onclick=()=>addMedRow();
+    if(el("scPwdDiscount"))el("scPwdDiscount").addEventListener("change",recalc);
+
+    if(el("btnNewSlip"))el("btnNewSlip").onclick=()=>{
+        document.querySelector("#tblServices tbody").innerHTML="";
+        document.querySelector("#tblMeds tbody").innerHTML="";
+        el("patientName").value="";
+        if(el("doctorName")) {
+            el("doctorName").value="";
+            el("doctorName").style.backgroundColor = "#f8fafc";
+            el("doctorName").style.pointerEvents = "auto";
+        }
+        el("slipDate").value=today();
+        el("slipNo").value=uid();
+        el("slipStatus").textContent="NEW";
+        el("slipStatus").className="badge";
+        if(el("scPwdDiscount"))el("scPwdDiscount").checked=false;
+        recalc();
+    };
+
+    if(el("btnSaveSlip"))el("btnSaveSlip").onclick=saveSlip;
+    if(el("btnPayInFull"))el("btnPayInFull").onclick=()=>recordPayment(!0);
+    if(el("btnRecordPayment"))el("btnRecordPayment").onclick=()=>recordPayment(!1);
+    if(el("btnSettleBalance"))el("btnSettleBalance").onclick=settleBalance;
+
+    if(el("btnPrintLastReceipt"))el("btnPrintLastReceipt").onclick=()=>{
+        const e=sales.find((e=>e.id===lastTxId));
+        if(!e)return alert("No recent payment.");
+        printReceipt(e);
+    };
+
+    if(el("btnExportSalesCSV"))el("btnExportSalesCSV").onclick=exportSalesSummary;
+    if(el("btnExportDetailCSV"))el("btnExportDetailCSV").onclick=exportLineItems;
+
+    if(el("btnExportSlipsCSV"))el("btnExportSlipsCSV").onclick=()=>{
+        const e=[["Date","Slip","Patient","Doctor","Services","Meds","Total"]];
+        slips.forEach((t=>{e.push([t.date,t.id,t.patient,t.doctor||"",money(t.totals?.svc||0),money(t.totals?.med||0),money(t.totals?.total||0)])}));
+        exportCSV(e,"charge_slips.csv");
+    };
+
+    if(el("btnPrintSlip"))el("btnPrintSlip").onclick=()=>{printSlipFrom(saveSlip())};
+    if(el("salesSearch"))el("salesSearch").oninput=renderSales;
+
+    fetchLiveInventory();
+
+    // FETCH LIVE DOCTORS & WAIT FOR DB LOAD
+    Promise.all([
+        loadAllFromFirebase(),
+        fetchLiveDoctors()
+    ]).then(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const p = params.get("patient");
+            const d = params.get("doctor");
+
+            if (p || d) {
+                // Clear the form for the new data
+                if (el("btnNewSlip")) el("btnNewSlip").click();
+
+                // 1. Securely Inject Patient
+                if (p && el("patientName")) {
+                    el("patientName").value = p.trim();
+                }
+
+                // 2. Securely Inject and LOCK the Doctor
+                if (d && el("doctorName")) {
+                    const docStr = d.trim();
+                    const sel = el("doctorName");
+
+                    const enforceLink = () => {
+                        // Forcibly add the doctor if the dropdown hasn't rendered it yet
+                        let exists = Array.from(sel.options).some(opt => opt.value === docStr);
+                        if (!exists) {
+                            sel.insertAdjacentHTML('beforeend', `<option value="${esc(docStr)}">${esc(docStr)}</option>`);
+                        }
+
+                        sel.value = docStr;
+                        // Visually and functionally lock it to match the main app's strict continuity
+                        sel.style.backgroundColor = "#e2e8f0";
+                        sel.style.pointerEvents = "none";
+                    };
+
+                    enforceLink();
+
+                    // Absolute Failsafe: Run again after 500ms in case a rogue network payload clears it
+                    setTimeout(enforceLink, 500);
+                }
+            }
+        } catch(err) {
+            console.error("POS Continuity Link Error:", err);
+        }
+    });
+}));
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded",(()=>{
+    if("undefined"==typeof Chart)return;
+    let t,e,a;
+    const o=t=>"₱"+Number(t||0).toLocaleString(void 0,{minimumFractionDigits:0});
+    function i(t){
+        const e="function"==typeof buildFlatSaleRows?buildFlatSaleRows():[],a={},o={};
+        let i=0,n=0;
+        e.forEach((e=>{
+            if(!e.ts)return;
+            const r=new Date(e.ts);
+            if(isNaN(r))return;
+            if(t&&!function(e){return!(!e||t&&t.from&&e<t.from||t&&t.to&&e>t.to)}(r))return;
+            const s=r.toISOString().slice(0,10),l=s.slice(0,7);
+            a[s]||={Service:0,Medicine:0};
+            o[l]||={Service:0,Medicine:0};
+            if("Service"===e.itemType){
+                a[s].Service+=Number(e.subtotal||0);
+                o[l].Service+=Number(e.subtotal||0);
+                i+=Number(e.subtotal||0);
+            }else if("Medicine"===e.itemType){
+                a[s].Medicine+=Number(e.subtotal||0);
+                o[l].Medicine+=Number(e.subtotal||0);
+                n+=Number(e.subtotal||0);
+            }
+        }));
+        return{daily:a,monthly:o,svc:i,med:n}
+    }
+
+    const n={
+        id:"stackedTotal",
+        afterDatasetsDraw(t){
+            const{ctx:e}=t;
+            e.save();
+            e.font="700 9px -apple-system, system-ui";
+            e.fillStyle="rgba(15,23,42,0.65)";
+            e.textAlign="center";
+            const a=t.getDatasetMeta(0),i=t.getDatasetMeta(1);
+            a.data.forEach(((n,r)=>{
+                const s=(t.data.datasets[0].data[r]||0)+(t.data.datasets[1].data[r]||0);
+                if(!s)return;
+                const l=n.x,d=Math.min(a.data[r].y,i.data[r]?.y??a.data[r].y)-6;
+                e.fillText(o(s),l,d);
+            }));
+            e.restore();
+        }
+    };
+
+    const r={
+        id:"donutCenter",
+        afterDraw(t){
+            const{ctx:e,chartArea:{left:a,right:i,top:n,bottom:r}}=t;
+            const s=t.data.datasets[0].data.reduce(((t,e)=>t+Number(e||0)),0);
+            e.save();
+            e.font="800 14px -apple-system, system-ui";
+            e.fillStyle="rgba(15,23,42,0.7)";
+            e.textAlign="center";
+            e.textBaseline="middle";
+            e.fillText(o(s),(a+i)/2,(n+r)/2);
+            e.restore();
+        }
+    };
+
+    function s(t,e,a,i,r){
+        if(r)r.destroy();
+        return new Chart(t,{
+            type:"bar",
+            plugins:[n],
+            data:{
+                labels:e,
+                datasets:[
+                    {label:"Service",data:a,backgroundColor:"rgba(10,132,255,0.7)",borderRadius:4},
+                    {label:"Medicine",data:i,backgroundColor:"rgba(52,199,89,0.6)",borderRadius:4}
+                ]
+            },
+            options:{
+                responsive:!0,maintainAspectRatio:!1,
+                plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,font:{size:10}}},tooltip:{callbacks:{label:t=>`${t.dataset.label}: ${o(t.parsed.y)}`}}},
+                scales:{x:{stacked:!0,grid:{display:!1},ticks:{font:{size:9},color:"rgba(15,23,42,0.65)",maxRotation:0}},y:{stacked:!0,beginAtZero:!0,grid:{color:"rgba(2,6,23,0.06)"},ticks:{font:{size:9},color:"rgba(15,23,42,0.65)",callback:t=>o(t)}}}
+            }
+        })
+    }
+
+    const l=window.refreshDashboard;
+    window.refreshDashboard=function(){
+        try{if(l)l()}catch(t){}
+        const n=document.getElementById("chartDaily"),d=document.getElementById("chartMonthly"),c=document.getElementById("chartBreakdown");
+        if(!n||!d||!c)return;
+
+        const b=i(window.__dashWindow||null),u=Object.keys(b.daily).sort();
+        t=s(n,u,u.map((t=>b.daily[t].Service)),u.map((t=>b.daily[t].Medicine)),t);
+
+        const m=Object.keys(b.monthly).sort();
+        e=s(d,m,m.map((t=>b.monthly[t].Service)),m.map((t=>b.monthly[t].Medicine)),e);
+
+        if(a)a.destroy();
+        a=new Chart(c,{
+            type:"doughnut",
+            plugins:[r],
+            data:{
+                labels:["Service","Medicine"],
+                datasets:[{data:[b.svc,b.med],backgroundColor:["rgba(10,132,255,0.8)","rgba(52,199,89,0.7)"],borderWidth:0}]
+            },
+            options:{
+                responsive:!0,maintainAspectRatio:!1,cutout:"68%",
+                plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,font:{size:10}}},tooltip:{callbacks:{label:t=>`${t.label}: ${o(t.parsed)}`}}}
+            }
+        });
+    }
+}));
+</script>
+</body>
+</html>

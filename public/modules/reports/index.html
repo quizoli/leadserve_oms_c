@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LEADSERVE OMS — Reports &amp; Census</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../../assets/style.css">
+  <link rel="icon" href="../../assets/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 landscape; margin: 8mm 10mm; }
+    :root { --brand:#0a3d62; --ink:#0f172a; --bg:#f7f9fc; --line:#e5e7eb; --muted:#667085; }
+    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:22px; box-shadow:0 4px 16px rgba(15,23,42,.06); margin-bottom:18px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr auto auto; gap:12px; align-items:end; }
+    label { display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em; }
+    input, select { width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; font-size:14px; }
+    .btn { padding:10px 18px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-weight:600; }
+    .btn.primary { background:#2563eb; color:#fff; border-color:transparent; }
+    .muted { color: var(--muted); }
+    /* Print/letterhead document */
+    .print-container { font-family:"Times New Roman", Times, serif; color:#000; background:#fff; }
+    .doc-header { text-align:center; margin-bottom:18px; position:relative; border-bottom:2px solid #000; padding-bottom:10px; display:flex; align-items:center; justify-content:center; }
+    .doc-header img { width:64px; position:absolute; }
+    .doc-header img.left { left:0; } .doc-header img.right { right:0; }
+    .doc-header h3 { margin:0 0 4px; font-size:20px; }
+    .doc-header p { margin:0; font-size:12px; font-family:Arial, sans-serif; }
+    h2.report-title { text-align:center; font-size:20px; margin:18px 0 14px; text-transform:uppercase; letter-spacing:1px; }
+    .table-wrap { overflow:auto; }
+    table.census { width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:11px; text-align:center; background:#fff; }
+    table.census th { border:2px solid #000 !important; padding:6px 2px !important; text-transform:uppercase; background:#fff !important; color:#000 !important; font-weight:700 !important; letter-spacing:0 !important; }
+    table.census td { border:1px solid #000 !important; padding:4px 2px !important; font-weight:700 !important; color:#000 !important; background:#fff !important; }
+    table.census .col-date { text-align:left; padding-left:6px; white-space:nowrap; text-transform:uppercase; }
+    table.census tr.total-row td { border-top:2px solid #000 !important; border-bottom:2px solid #000 !important; color:#b91c1c !important; }
+    .summary { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-top:16px; }
+    .sum { border-collapse:collapse; font-family:Arial, sans-serif; font-size:11px; text-align:center; background:#fff; }
+    .sum th, .sum td { border:2px solid #000 !important; padding:5px 10px !important; font-weight:700 !important; color:#000 !important; background:#fff !important; }
+    .sum th { text-transform:uppercase; letter-spacing:0 !important; }
+    .signatures { margin-top:38px; font-family:Arial, sans-serif; font-size:12px; }
+    @media print {
+      .noprint { display:none !important; }
+      .card { box-shadow:none; border:0; padding:0; }
+      body { background:#fff; } .wrap { margin:0; max-width:none; padding:0; }
+      .print-container { page-break-inside:avoid; }
+      .doc-header { margin-bottom:6px; padding-bottom:5px; }
+      .doc-header img { width:42px; }
+      .doc-header h3 { font-size:15px; margin-bottom:2px; }
+      .doc-header p { font-size:9px; }
+      h2.report-title { font-size:13px; margin:6px 0 5px; }
+      table.census { font-size:8.5px; }
+      table.census th { padding:2px 2px; }
+      table.census td { padding:1.5px 2px; }
+      .summary { margin-top:6px; gap:8px; page-break-inside:avoid; }
+      .sum { font-size:8.5px; }
+      .sum th, .sum td { padding:2px 6px; }
+      .signatures { margin-top:10px; font-size:9.5px; page-break-inside:avoid; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+      .signatures br { display:none; }
+      .signatures p { margin:1px 0; }
+    }
+    @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  </style>
+  <script defer src="../../assets/header.js"></script>
+</head>
+<body>
+  <msn-header class="noprint"></msn-header>
+
+  <main class="wrap">
+    <section class="card noprint">
+      <h2 style="margin:0 0 14px;">Census Reports</h2>
+      <div class="grid">
+        <div>
+          <label>Report Type</label>
+          <select id="rpt_type"><option value="census">OPD Census</option></select>
+        </div>
+        <div>
+          <label>Report Month</label>
+          <input type="month" id="rpt_month">
+        </div>
+        <button class="btn primary" id="btnGenerate" type="button">Generate</button>
+        <button class="btn" id="btnPrint" type="button" style="display:none;">Print</button>
+      </div>
+      <p class="muted" style="margin:12px 0 0;">Uses Booking/Consultation appointments and paid Charge Slip/POS receipts to generate the monthly OPD census.</p>
+    </section>
+
+    <section class="card" id="reportContainer" style="display:none;"></section>
+  </main>
+
+  <script src="../../config.js"></script>
+  <script src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../../assets/leadserve-firestore.js"></script>
+
+  <script>
+    if (!firebase.apps.length) firebase.initializeApp(window.OMS_CONFIG.firebase);
+    const reportDb = firebase.firestore();
+    const byId = (id) => document.getElementById(id);
+
+    function defaultMonth() {
+      const d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    }
+    byId("rpt_month").value = defaultMonth();
+    byId("btnPrint").addEventListener("click", () => window.print());
+
+    function clean(value) { return String(value || "").trim(); }
+    function normalizeName(value) {
+      return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+    }
+    function dateOnly(value) {
+      if (!value) return "";
+      if (value && typeof value.toDate === "function") return value.toDate().toISOString().slice(0, 10);
+      if (value instanceof Date) return value.toISOString().slice(0, 10);
+      const raw = String(value).trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+      const parsed = new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString().slice(0, 10);
+    }
+    function patientName(patient) {
+      return clean(patient.name || patient.fullName || [patient.lname, patient.fname, patient.mname].filter(Boolean).join(", "));
+    }
+    function money(value) {
+      return "₱" + Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function categorizeLocation(addr) {
+      const a = clean(addr).toLowerCase();
+      if (a.includes("abra") || a.includes("bangued")) return "abra";
+      if (a.includes("norte") || a.includes("laoag") || a.includes("batac") || a.includes("paoay")) return "norte";
+      if (a.includes("sur") || a.includes("vigan") || a.includes("bantay") || a.includes("candon") || a.includes("caoayan") || a.includes("magsingal") || a.includes("narvacan")) return "sur";
+      return "others";
+    }
+    function categorizeTreatmentFromItems(items) {
+      const text = (items || []).map(item => clean(item.name || item.desc || item.description || item.item)).join(" ").toLowerCase();
+      if (text.includes("laser") || text.includes("yag") || text.includes("prp") || text.includes("argon")) return "laser";
+      if (text.includes("minor") || text.includes("excision") || text.includes("suture") || text.includes("removal") || text.includes("procedure")) return "minor";
+      return "mm";
+    }
+    function makePatientIndexes(patientsSnap) {
+      const idIdx = new Map();
+      const nameIdx = new Map();
+      patientsSnap.forEach(doc => {
+        const data = doc.data() || {};
+        const record = { docId: doc.id, ...data };
+        idIdx.set(String(doc.id), record);
+        if (data.id != null) idIdx.set(String(data.id), record);
+        const name = patientName(record);
+        if (name) nameIdx.set(normalizeName(name), record);
+      });
+      return { byId: idIdx, byName: nameIdx };
+    }
+    function findPatientForName(name, indexes) {
+      const normalized = normalizeName(name);
+      if (!normalized) return null;
+      if (indexes.byName.has(normalized)) return indexes.byName.get(normalized);
+      for (const [key, patient] of indexes.byName.entries()) {
+        if (key === normalized || key.includes(normalized) || normalized.includes(key)) return patient;
+      }
+      return null;
+    }
+    function patientKeyFromName(name) {
+      return normalizeName(name) || clean(name).toLowerCase();
+    }
+    function appointmentKey(appt, patient, fallbackName) {
+      const name = patientName(patient || {}) || fallbackName || String(appt.patientId || appt.patient || "");
+      return patientKeyFromName(name);
+    }
+    function buildSlipMap(slipsSnap) {
+      const map = new Map();
+      slipsSnap.forEach(doc => {
+        const data = doc.data() || {};
+        map.set(String(doc.id), { id: doc.id, ...data });
+        if (data.id) map.set(String(data.id), { id: data.id, ...data });
+      });
+      return map;
+    }
+    function saleItems(sale, slip) {
+      if (Array.isArray(sale.items) && sale.items.length) return sale.items;
+      const items = [];
+      (slip?.services || []).forEach(item => items.push({ ...item, type: "Service" }));
+      (slip?.medicines || []).forEach(item => items.push({ ...item, type: "Medicine" }));
+      return items;
+    }
+
+    byId("btnGenerate").addEventListener("click", async () => {
+      const month = byId("rpt_month").value;
+      if (!month) return alert("Please select a report month.");
+      const container = byId("reportContainer");
+      container.style.display = "block";
+      container.innerHTML = '<div style="padding:32px; text-align:center; color:#0a84ff; font-weight:700;">Generating census from Booking/Consultation and POS...</div>';
+
+      try {
+        const [patientsSnap, apptsSnap, salesSnap, slipsSnap] = await Promise.all([
+          reportDb.collection("patients").get(),
+          reportDb.collection("appts").get(),
+          reportDb.collection("oms_sales").get(),
+          reportDb.collection("oms_slips").get()
+        ]);
+
+        const indexes = makePatientIndexes(patientsSnap);
+        const slipMap = buildSlipMap(slipsSnap);
+        const [yearStr, monthStr] = month.split("-");
+        const year = Number(yearStr);
+        const monthNum = Number(monthStr);
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const monthNames = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+        const monthName = monthNames[monthNum - 1];
+        const daily = {};
+        for (let day = 1; day <= daysInMonth; day++) {
+          daily[`${month}-${String(day).padStart(2, "0")}`] = {
+            booked: 0, actual: 0, scheduledPaid: 0, walkinPaid: 0, noShow: 0,
+            new: 0, old: 0, mm: 0, laser: 0, minor: 0, sur: 0, norte: 0, abra: 0, others: 0,
+            billed: 0, paid: 0,
+            apptKeys: new Set(), paidKeys: new Set(), paidScheduledKeys: new Set(), paidWalkinKeys: new Set(), billedSlipIds: new Set()
+          };
+        }
+
+        apptsSnap.forEach(doc => {
+          const appt = { id: doc.id, ...(doc.data() || {}) };
+          const date = dateOnly(appt.date || appt.apptDate || appt.appointmentDate || appt.scheduleDate || appt.created);
+          if (!date.startsWith(month) || !daily[date]) return;
+          const patient = indexes.byId.get(String(appt.patientId || appt.patient || appt.pid || ""));
+          const key = appointmentKey(appt, patient, appt.patientName || appt.name);
+          if (!key) return;
+          daily[date].apptKeys.add(key);
+        });
+
+        salesSnap.forEach(doc => {
+          const sale = { id: doc.id, ...(doc.data() || {}) };
+          if (sale.deletedAt || sale.voided || sale.status === "VOIDED") return;
+          const amount = Number(sale.amount || sale.amountPaid || 0);
+          if (amount <= 0) return;
+          const date = dateOnly(sale.date || sale.ts || sale.createdAt);
+          if (!date.startsWith(month) || !daily[date]) return;
+
+          const slip = slipMap.get(String(sale.slipId || sale.slip || "")) || {};
+          const slipId = String(sale.slipId || sale.slip || slip.id || "");
+          const name = clean(sale.patient || slip.patient || sale.patientName);
+          const patient = findPatientForName(name, indexes);
+          const key = patientKeyFromName(patientName(patient || {}) || name || sale.slipId || sale.id);
+          if (!key || daily[date].paidKeys.has(key)) {
+            daily[date].paid += amount;
+            if (slipId && !daily[date].billedSlipIds.has(slipId)) {
+              daily[date].billedSlipIds.add(slipId);
+              daily[date].billed += Number(slip.totals?.total || sale.totalBill || 0);
+            }
+            return;
+          }
+
+          const row = daily[date];
+          const items = saleItems(sale, slip);
+          const scheduled = row.apptKeys.has(key);
+          row.paidKeys.add(key);
+          if (scheduled) row.paidScheduledKeys.add(key); else row.paidWalkinKeys.add(key);
+          row.actual++;
+          if (scheduled) row.scheduledPaid++; else row.walkinPaid++;
+
+          const regDate = dateOnly(patient?.regdate || patient?.dateRegistered || patient?.createdAt);
+          if (regDate && regDate === date) row.new++; else row.old++;
+          row[categorizeTreatmentFromItems(items)]++;
+          row[categorizeLocation(patient?.addr || patient?.address)]++;
+          row.paid += amount;
+          if (slipId && !row.billedSlipIds.has(slipId)) {
+            row.billedSlipIds.add(slipId);
+            row.billed += Number(slip.totals?.total || sale.totalBill || 0);
+          }
+        });
+
+        Object.values(daily).forEach(row => {
+          row.booked = row.apptKeys.size;
+          row.noShow = Math.max(0, row.booked - row.paidScheduledKeys.size);
+        });
+
+        const totals = { booked:0, actual:0, scheduledPaid:0, walkinPaid:0, noShow:0, new:0, old:0, mm:0, laser:0, minor:0, sur:0, norte:0, abra:0, others:0, billed:0, paid:0 };
+        let firstHalf = 0;
+        let secondHalf = 0;
+        let body = "";
+        for (let day = 1; day <= daysInMonth; day++) {
+          const date = `${month}-${String(day).padStart(2, "0")}`;
+          const r = daily[date];
+          Object.keys(totals).forEach(key => totals[key] += r[key]);
+          if (day <= 15) firstHalf += r.actual; else secondHalf += r.actual;
+          body += `<tr><td class="col-date">${monthName} ${day}</td><td>${r.booked}</td><td>${r.actual}</td><td>${r.scheduledPaid}</td><td>${r.walkinPaid}</td><td>${r.noShow}</td><td>${r.new}</td><td>${r.old}</td><td>${r.mm}</td><td>${r.laser}</td><td>${r.minor}</td><td>${r.sur}</td><td>${r.norte}</td><td>${r.abra}</td><td>${r.others}</td><td>${money(r.paid)}</td></tr>`;
+        }
+
+        container.innerHTML = `
+          <div class="print-container">
+            <div class="doc-header">
+              <img src="../../assets/logo.png" class="left" alt="Logo" onerror="this.style.display='none'">
+              <div>
+                <h3>LEADSERVE DEMO CLINIC</h3>
+                <p>Demo City, Philippines</p>
+                <p>Email: Contact details available at the clinic</p>
+              </div>
+              <img src="../../assets/logo.png" class="right" alt="Logo" onerror="this.style.display='none'">
+            </div>
+            <h2 class="report-title">LEADSERVE OPD Census ${monthName} ${year}</h2>
+            <p class="muted noprint" style="font-family:Arial,sans-serif; text-align:center; margin-top:-4px;">Booked comes from Booking/Consultation appointments. Actual OPD comes from paid Charge Slip/POS receipts.</p>
+            <div class="table-wrap">
+              <table class="census">
+                <thead>
+                  <tr>
+                    <th class="col-date">${monthName} 01-${daysInMonth} ${year}</th>
+                    <th>Booked</th><th>Actual OPD</th><th>Booked Paid</th><th>Walk-in Paid</th><th>No Show</th>
+                    <th>New</th><th>Old</th><th>MM</th><th>Laser</th><th>Minor TX</th>
+                    <th>Ilocos Sur</th><th>Ilocos Norte</th><th>Abra</th><th>Others</th>
+                    <th>Paid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${body}
+                  <tr class="total-row">
+                    <td class="col-date">Total</td>
+                    <td>${totals.booked}</td><td>${totals.actual}</td><td>${totals.scheduledPaid}</td><td>${totals.walkinPaid}</td><td>${totals.noShow}</td>
+                    <td>${totals.new}</td><td>${totals.old}</td><td>${totals.mm}</td><td>${totals.laser}</td><td>${totals.minor}</td>
+                    <td>${totals.sur}</td><td>${totals.norte}</td><td>${totals.abra}</td><td>${totals.others}</td>
+                    <td>${money(totals.paid)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="summary">
+              <table class="sum">
+                <tr><td>${monthName} 1-15 Actual OPD</td><td>${firstHalf}</td></tr>
+                <tr><td>${monthName} 16-${daysInMonth} Actual OPD</td><td>${secondHalf}</td></tr>
+                <tr><td>${monthName.slice(0,3)} Total Actual OPD</td><td>${totals.actual}</td></tr>
+              </table>
+              <table class="sum">
+                <tr><th>Booked</th><th>Actual</th><th>No Show</th><th>Walk-in</th></tr>
+                <tr><td>${totals.booked}</td><td>${totals.actual}</td><td>${totals.noShow}</td><td>${totals.walkinPaid}</td></tr>
+              </table>
+              <table class="sum">
+                <tr><th>New</th><th>Old</th><th>MM</th><th>Laser</th><th>Minor TX</th></tr>
+                <tr><td>${totals.new}</td><td>${totals.old}</td><td>${totals.mm}</td><td>${totals.laser}</td><td>${totals.minor}</td></tr>
+              </table>
+              <table class="sum">
+                <tr><th>Total Paid</th><th>Total Billed</th></tr>
+                <tr><td>${money(totals.paid)}</td><td>${money(totals.billed)}</td></tr>
+              </table>
+            </div>
+            <div class="signatures">
+              <p>Prepared by:</p><br>
+              <p>___________________________</p>
+              <p>LEADSERVE OPD Nurse</p>
+              <p style="margin-top:28px;">Approved by:</p><br>
+              <p><b>Attending Physician</b></p>
+              <p>CEO - LEADSERVE Demo Clinic</p>
+            </div>
+          </div>`;
+        byId("btnPrint").style.display = "inline-flex";
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<div style="color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:18px;"><b>Unable to generate report:</b> ${err.message}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

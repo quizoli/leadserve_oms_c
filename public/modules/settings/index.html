@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LEADSERVE OMS - System Settings</title>
+
+    <link rel="stylesheet" href="../../assets/style.css">
+    <link rel="icon" href="../../assets/logo.png">
+
+    <script src="../../config.js"></script>
+    <script src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="../../assets/leadserve-firestore.js"></script>
+
+    <script defer src="../../assets/header.js"></script>
+    <style>
+        .wrap { max-width: 1180px; margin: 24px auto; padding: 24px; }
+        .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 20px; }
+        .tab {
+            border: 1px solid var(--border-medium); padding: 9px 16px !important;
+            border-radius: 999px !important; background: #fff !important;
+            cursor: pointer; font-weight: 600 !important; color: var(--text-muted) !important;
+            box-shadow: none !important;
+        }
+        .hidden { display: none !important; }
+
+        .section { padding: 24px; margin-bottom: 20px; }
+        .section + .section { margin-top: 0; }
+
+        .section-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+        }
+        .section-head h3 { margin: 0; font-size: 18px; font-weight: 700; }
+        .section-head .actions { display: flex; gap: 8px; align-items: center; }
+        .section-head .hint { font-size: 13px; color: var(--text-muted); }
+
+        .subsection { margin-top: 18px; }
+        .subsection-head {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 12px; margin: 8px 0 10px;
+        }
+        .subsection-head .title { font-size: 14px; font-weight: 700; color: var(--text-main); }
+        .subsection-head .meta { font-size: 12px; color: var(--text-muted); }
+
+        .panel {
+            background: #F5F5F7 !important; border: 1px solid var(--border-light) !important;
+            border-radius: var(--radius-md) !important; padding: 20px !important;
+            box-shadow: none !important;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr) minmax(0, .8fr) minmax(0, .8fr);
+            gap: 14px 16px;
+        }
+        .form-grid .field { display: flex; flex-direction: column; min-width: 0; }
+        .form-grid label {
+            display: block; font-size: 11px; font-weight: 700; color: var(--text-muted);
+            letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px;
+        }
+        .form-grid input, .form-grid select { width: 100%; font-size: 14px; }
+        @media (max-width: 920px) {
+            .form-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 560px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
+
+        .access-grid {
+            display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px; margin-top: 18px;
+        }
+        @media (max-width: 920px) { .access-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px) { .access-grid { grid-template-columns: 1fr; } }
+        .access-option {
+            display: flex; align-items: center; gap: 10px;
+            text-transform: none; letter-spacing: 0; font-size: 13px;
+            color: var(--text-main); background: #fff;
+            border: 1px solid var(--border-light) !important;
+            border-radius: var(--radius-sm); padding: 11px 12px;
+            font-weight: 500; cursor: pointer; user-select: none;
+        }
+        .access-option:hover { background: #FAFAFC; }
+        .access-option input { width: 16px !important; height: 16px !important; flex-shrink: 0; padding: 0 !important; margin: 0 !important; }
+
+        .form-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap; margin-top: 18px;
+        }
+        .admin-toggle {
+            display: inline-flex; align-items: center; gap: 10px;
+            font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer;
+        }
+        .admin-toggle input { width: 16px !important; height: 16px !important; padding: 0 !important; margin: 0 !important; }
+        .form-footer .actions { display: flex; gap: 8px; }
+
+        #userMsg { min-height: 18px; font-size: 13px; margin-top: 12px; font-weight: 600; }
+        #userMsg.error { color: #b42318; }
+        #userMsg.ok { color: #027a48; }
+
+        /* Users table */
+        .users-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .users-table th, .users-table td {
+            padding: 12px 14px !important; font-size: 13px;
+            vertical-align: middle; text-align: left;
+        }
+        .users-table th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+        .users-table td.uid {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+            color: var(--text-muted);
+        }
+        .users-table td.actions { text-align: right; white-space: nowrap; }
+        .users-table td.actions .btn { padding: 6px 12px !important; font-size: 12px !important; }
+        .users-table .access-cell { display: flex; flex-wrap: wrap; gap: 4px; }
+
+        .badge {
+            display: inline-flex; align-items: center;
+            border: 1px solid var(--border-light); border-radius: 999px;
+            padding: 3px 10px; font-size: 11px; font-weight: 600;
+            background: #F5F5F7; color: var(--text-main); white-space: nowrap;
+        }
+        .badge.admin { background: #E0F2FE; color: #075985; border-color: #BAE6FD; }
+        .badge.inactive { background: #FEF2F2; color: #991B1B; border-color: #FECACA; }
+        .badge.ghost { background: transparent; color: var(--text-muted); border-style: dashed; }
+    </style>
+</head>
+<body>
+    <msn-header></msn-header>
+
+    <div class="wrap">
+        <div class="tabs noprint">
+            <button class="tab active" data-tab="clinic" type="button">Clinic Settings</button>
+            <button class="tab hidden" data-tab="users" id="usersTabBtn" type="button">Users &amp; Access</button>
+        </div>
+
+        <section id="view-clinic" class="section">
+            <div class="section-head">
+                <h3>Manage Attending Physicians</h3>
+                <span class="hint">Changes here update all dropdowns system-wide.</span>
+            </div>
+
+            <div class="panel" style="margin-bottom:20px;">
+                <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                        <label style="display:block; font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:.05em; text-transform:uppercase; margin-bottom:6px;">Add New Physician</label>
+                        <input type="text" id="new-doctor" placeholder="e.g. Attending Physician">
+                    </div>
+                    <button class="btn primary" id="btn-add-doc">Add to System</button>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="users-table" id="tbl-doctors">
+                    <thead>
+                        <tr>
+                            <th>Physician Name</th>
+                            <th style="text-align:right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="view-users" class="section hidden">
+            <div class="section-head">
+                <h3>Users &amp; Access</h3>
+                <div class="actions">
+                    <button class="btn primary" id="btnAddNewUser" type="button">Add New User</button>
+                    <button class="btn" id="btnRefreshUsers" type="button">Refresh</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="subsection-head" style="margin-top:0;">
+                    <span class="title" id="userFormTitle">Add New User</span>
+                    <span class="meta">Use the Firebase Authentication UID for the account.</span>
+                </div>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="u_uid">Firebase Auth UID</label>
+                        <input id="u_uid" placeholder="Paste UID from Firebase Authentication">
+                    </div>
+                    <div class="field">
+                        <label for="u_email">Email</label>
+                        <input id="u_email" type="email" placeholder="user@example.com">
+                    </div>
+                    <div class="field">
+                        <label for="u_role">Role</label>
+                        <select id="u_role">
+                            <option value="staff">Staff</option>
+                            <option value="doctor">Doctor</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="u_status">Status</label>
+                        <select id="u_status">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="subsection-head" style="margin-top:18px; margin-bottom:0;">
+                    <span class="title">Module Access</span>
+                    <span class="meta">Tick the modules this user can open.</span>
+                </div>
+                <div class="access-grid" id="moduleAccessList"></div>
+
+                <div class="form-footer">
+                    <label class="admin-toggle">
+                        <input id="u_isAdmin" type="checkbox">
+                        LEADSERVE administrator (grants access to all modules)
+                    </label>
+                    <div class="actions">
+                        <button class="btn" id="btnClearUser" type="button">Clear Form</button>
+                        <button class="btn primary" id="btnSaveUser" type="button">Save User</button>
+                    </div>
+                </div>
+                <div id="userMsg"></div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-head">
+                    <span class="title">LEADSERVE Users</span>
+                    <span class="meta" id="userCount">Loading...</span>
+                </div>
+                <div class="table-wrap">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th style="width:24%;">Email</th>
+                                <th style="width:10%;">Role</th>
+                                <th style="width:10%;">Status</th>
+                                <th style="width:28%;">Access</th>
+                                <th style="width:18%;">UID</th>
+                                <th style="width:10%; text-align:right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.OMS_CONFIG.firebase);
+        }
+        const db = firebase.firestore();
+        const settingsRef = db.collection("settings").doc("clinic");
+        const usersCol = db.collection("oms_users");
+
+        const ADMIN_EMAILS = ["admin@leadserve.demo"];
+        const MODULE_ACCESS = [
+            { key: "registration",   label: "Patient Registration" },
+            { key: "consultation",   label: "Booking & Consultation" },
+            { key: "chargeSlipPos",  label: "Charge Slip + POS" },
+            { key: "prescription",   label: "Prescription" },
+            { key: "inventory",      label: "Inventory" },
+            { key: "procurement",    label: "Procurement" },
+            { key: "philhealthCf4",  label: "PhilHealth CF4" },
+            { key: "hr",             label: "HR" }
+        ];
+
+        const $ = (id) => document.getElementById(id);
+
+        // ==========================================
+        // TABS
+        // ==========================================
+        document.querySelectorAll(".tab").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+                btn.classList.add("active");
+                const tab = btn.dataset.tab;
+                $("view-clinic").classList.toggle("hidden", tab !== "clinic");
+                $("view-users").classList.toggle("hidden", tab !== "users");
+            });
+        });
+
+        // ==========================================
+        // PHYSICIANS (unchanged)
+        // ==========================================
+        async function loadDoctors() {
+            const tbody = document.querySelector("#tbl-doctors tbody");
+            tbody.innerHTML = "<tr><td colspan='2'>Loading...</td></tr>";
+            try {
+                const doc = await settingsRef.get();
+                let doctors = doc.exists && doc.data().physicians ? doc.data().physicians : [];
+                tbody.innerHTML = "";
+                if (!doctors.length) {
+                    tbody.innerHTML = "<tr><td colspan='2' style='color:var(--text-muted); text-align:center;'>No physicians added yet.</td></tr>";
+                    return;
+                }
+                doctors.sort();
+                doctors.forEach(name => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td style="font-weight: 600; color: var(--primary);">${name}</td>
+                        <td style="text-align: right;">
+                            <button class="btn btn-sm danger" onclick="removeDoctor('${name.replace(/'/g, "\\'")}')">Remove</button>
+                        </td>`;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error("Error loading settings:", error);
+                tbody.innerHTML = "<tr><td colspan='2' style='color:red;'>Failed to load. Check console.</td></tr>";
+            }
+        }
+
+        async function addDoctor() {
+            const input = $("new-doctor");
+            const name = input.value.trim();
+            if (!name) return alert("Please enter a doctor's name.");
+            const btn = $("btn-add-doc");
+            btn.textContent = "Adding...";
+            btn.disabled = true;
+            try {
+                await settingsRef.set({
+                    physicians: firebase.firestore.FieldValue.arrayUnion(name)
+                }, { merge: true });
+                input.value = "";
+                await loadDoctors();
+            } catch (error) {
+                console.error("Error adding doctor:", error);
+                alert("Failed to add physician. Check your database permissions.");
+            } finally {
+                btn.textContent = "Add to System";
+                btn.disabled = false;
+            }
+        }
+
+        window.removeDoctor = async function(name) {
+            if (!confirm(`Are you sure you want to remove ${name} from the system?\n\nNote: This will not delete their historical records, but they will no longer appear in dropdowns.`)) return;
+            try {
+                await settingsRef.set({
+                    physicians: firebase.firestore.FieldValue.arrayRemove(name)
+                }, { merge: true });
+                await loadDoctors();
+            } catch (error) {
+                console.error("Error removing doctor:", error);
+                alert("Failed to remove physician.");
+            }
+        };
+
+        // ==========================================
+        // USERS & ACCESS
+        // ==========================================
+        function userMsg(text, type) {
+            const el = $("userMsg");
+            el.textContent = text || "";
+            el.className = type || "";
+        }
+
+        function renderModuleAccessOptions() {
+            $("moduleAccessList").innerHTML = MODULE_ACCESS.map(mod => `
+                <label class="access-option">
+                    <input type="checkbox" data-permission="${mod.key}">
+                    <span>${mod.label}</span>
+                </label>`).join("");
+        }
+
+        function setModulePermissions(permissions = {}) {
+            document.querySelectorAll("[data-permission]").forEach(input => {
+                input.checked = permissions[input.dataset.permission] === true;
+            });
+        }
+
+        function getModulePermissions() {
+            const permissions = {};
+            document.querySelectorAll("[data-permission]").forEach(input => {
+                permissions[input.dataset.permission] = input.checked === true;
+            });
+            return permissions;
+        }
+
+        function accessSummary(user, isAdmin) {
+            if (isAdmin) return '<span class="badge admin">All modules</span>';
+            const permissions = user.permissions || {};
+            const enabled = MODULE_ACCESS.filter(mod => permissions[mod.key] === true);
+            if (!enabled.length) return '<span class="badge ghost">None</span>';
+            return enabled.map(mod => `<span class="badge">${mod.label}</span>`).join("");
+        }
+
+        function clearUserForm() {
+            ["u_uid", "u_email"].forEach(id => $(id).value = "");
+            $("u_role").value = "staff";
+            $("u_status").value = "active";
+            $("u_isAdmin").checked = false;
+            setModulePermissions({});
+            $("userFormTitle").textContent = "Add New User";
+            $("btnSaveUser").textContent = "Save User";
+            userMsg("");
+        }
+
+        function fillUserForm(uid, data) {
+            $("u_uid").value = uid || "";
+            $("u_email").value = data.email || "";
+            $("u_role").value = data.role || "staff";
+            $("u_status").value = data.status || "active";
+            $("u_isAdmin").checked = data.isAdmin === true || data.role === "admin";
+            setModulePermissions(data.permissions || {});
+            $("userFormTitle").textContent = "Edit User";
+            $("btnSaveUser").textContent = "Update User";
+            $("view-users").scrollIntoView({ behavior: "smooth" });
+        }
+
+        async function loadUsers() {
+            const tbody = $("usersBody");
+            tbody.innerHTML = "<tr><td colspan='6'>Loading users...</td></tr>";
+            try {
+                const snap = await usersCol.orderBy("email").get();
+                const rows = [];
+                snap.forEach(doc => rows.push({ uid: doc.id, ...doc.data() }));
+                $("userCount").textContent = rows.length + " user" + (rows.length === 1 ? "" : "s");
+                tbody.innerHTML = rows.length ? "" : "<tr><td colspan='6'>No user profiles yet.</td></tr>";
+                rows.forEach(user => {
+                    const isAdmin = user.isAdmin === true || user.role === "admin";
+                    const inactive = user.status === "inactive";
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><b>${user.email || ""}</b></td>
+                        <td><span class="badge ${isAdmin ? "admin" : ""}">${isAdmin ? "Admin" : (user.role || "staff")}</span></td>
+                        <td><span class="badge ${inactive ? "inactive" : ""}">${user.status || "active"}</span></td>
+                        <td><div class="access-cell">${accessSummary(user, isAdmin)}</div></td>
+                        <td class="uid">${user.uid}</td>
+                        <td class="actions">
+                            <button class="btn" type="button" data-action="edit">Edit</button>
+                            <button class="btn danger" type="button" data-action="delete">Delete</button>
+                        </td>`;
+                    tr.querySelector('[data-action="edit"]').addEventListener("click", () => fillUserForm(user.uid, user));
+                    tr.querySelector('[data-action="delete"]').addEventListener("click", () => deleteUser(user));
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+                $("userCount").textContent = "Unable to load";
+                tbody.innerHTML = "<tr><td colspan='6'>Unable to load users.</td></tr>";
+                userMsg(err.message || "Unable to load users.", "error");
+            }
+        }
+
+        async function saveUser() {
+            const uid = $("u_uid").value.trim();
+            const email = $("u_email").value.trim().toLowerCase();
+            const role = $("u_role").value;
+            const status = $("u_status").value;
+            const isAdmin = $("u_isAdmin").checked || role === "admin";
+            const permissions = getModulePermissions();
+            if (!uid || !email) {
+                userMsg("UID and email are required.", "error");
+                return;
+            }
+            const btn = $("btnSaveUser");
+            btn.disabled = true;
+            try {
+                await usersCol.doc(uid).set({
+                    email,
+                    role: isAdmin ? "admin" : role,
+                    status,
+                    isAdmin,
+                    permissions,
+                    updatedAt: Date.now()
+                }, { merge: true });
+                userMsg("User access saved.", "ok");
+                await loadUsers();
+            } catch (err) {
+                console.error(err);
+                userMsg(err.message || "Unable to save user.", "error");
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteUser(user) {
+            const uid = user.uid || "";
+            const label = user.email || uid;
+            if (!uid) return;
+            if (!confirm("Delete user settings for " + label + "?\n\nThis removes the LEADSERVE access/profile record only. It does not delete the Firebase Authentication login account.")) return;
+            try {
+                await usersCol.doc(uid).delete();
+                userMsg("User settings deleted.", "ok");
+                if ($("u_uid").value.trim() === uid) clearUserForm();
+                await loadUsers();
+            } catch (err) {
+                console.error(err);
+                userMsg(err.message || "Unable to delete user settings.", "error");
+            }
+        }
+
+        // ==========================================
+        // ADMIN GATE
+        // ==========================================
+        async function checkAdminAndInit(user) {
+            const email = String(user.email || "").toLowerCase();
+            let isAdmin = ADMIN_EMAILS.includes(email);
+            try {
+                const snap = await usersCol.doc(user.uid).get();
+                if (snap.exists) {
+                    const profile = snap.data() || {};
+                    isAdmin = isAdmin || profile.isAdmin === true || profile.role === "admin";
+                }
+            } catch (e) { console.warn("Could not read oms_users profile:", e); }
+
+            if (isAdmin) {
+                $("usersTabBtn").classList.remove("hidden");
+                renderModuleAccessOptions();
+                await loadUsers();
+            } else {
+                $("usersTabBtn").classList.add("hidden");
+            }
+        }
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", () => {
+            loadDoctors();
+            $("btn-add-doc").addEventListener("click", addDoctor);
+            $("new-doctor").addEventListener("keypress", (e) => { if (e.key === "Enter") addDoctor(); });
+
+            $("btnAddNewUser").addEventListener("click", () => {
+                clearUserForm();
+                $("u_uid").focus();
+                $("u_uid").scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+            $("btnRefreshUsers").addEventListener("click", loadUsers);
+            $("btnClearUser").addEventListener("click", clearUserForm);
+            $("btnSaveUser").addEventListener("click", saveUser);
+
+            firebase.auth().onAuthStateChanged((user) => {
+                if (user) checkAdminAndInit(user);
+            });
+        });
+    </script>
+</body>
+</html>

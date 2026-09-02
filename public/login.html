@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEADSERVE OMS Login</title>
+    <link rel="stylesheet" href="assets/style.css">
+
+    <script src="config.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="assets/leadserve-firestore.js"></script>
+
+    <script>
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.OMS_CONFIG.firebase);
+        }
+        const db = firebase.firestore();
+    </script>
+
+    <style>
+        body { margin:0; font-family:Arial,sans-serif; background:linear-gradient(180deg,#0a3d62,#115c8d); color:white; display:flex; justify-content:center; align-items:center; height:100vh; }
+        .card { background:white; color:black; border-radius:12px; padding:30px; width:350px; box-shadow:0 4px 10px rgba(0,0,0,0.3); text-align:center; }
+        .card img { max-width:80px; margin-bottom:10px; }
+        input { width:100%; padding:10px; margin:8px 0; border:1px solid #ccc; border-radius:6px; }
+        button { width:100%; padding:10px; margin-top:10px; border:none; border-radius:6px; background:#1e88e5; color:white; cursor:pointer; }
+        button:hover { background:#0056b3; }
+        .toggle { margin-top:10px; cursor:pointer; color:#1e88e5; }
+        .details { font-size:0.8rem; margin-top:15px; color:#555; }
+    </style>
+</head>
+<body>
+    <div class="card brand">
+        <img src="assets/logo.png" alt="LEADSERVE OMS">
+
+        <h2 class="name">LEADSERVE OMS</h2>
+
+        <p class="meta">Demo City, Philippines</p>
+
+        <div id="forms">
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+            <div class="toggle" onclick="showSignup()">Don’t have an account? Sign Up</div>
+        </div>
+
+        <div id="signup" style="display:none;">
+            <input type="email" id="newEmail" placeholder="Email">
+            <input type="password" id="newPassword" placeholder="Password">
+            <button onclick="signup()">Sign Up</button>
+            <div class="toggle" onclick="showLogin()">Already have an account? Login</div>
+        </div>
+
+        <div id="msg" style="margin-top:10px; color:#b42318; font-size:13px;"></div>
+
+        <div class="details meta">
+            Advanced eye care for everyone<br>
+            Physician: Attending Ophthalmologist
+        </div>
+    </div>
+
+    <script>
+        function showSignup(){
+            document.getElementById("forms").style.display="none";
+            document.getElementById("signup").style.display="block";
+        }
+        function showLogin(){
+            document.getElementById("signup").style.display="none";
+            document.getElementById("forms").style.display="block";
+        }
+        function login(){
+            const e=document.getElementById("email").value, n=document.getElementById("password").value;
+            firebase.auth().signInWithEmailAndPassword(e,n).then((()=>{
+                window.location="index.html";
+            })).catch((e=>document.getElementById("msg").innerText=e.message))
+        }
+        function signup(){
+            const e=document.getElementById("newEmail").value, n=document.getElementById("newPassword").value;
+            firebase.auth().createUserWithEmailAndPassword(e,n).then((n=>{
+                db.collection("users").doc(n.user.uid).set({email:e,role:"staff"});
+                window.location="index.html";
+            })).catch((e=>document.getElementById("msg").innerText=e.message))
+        }
+    </script>
+</body>
+</html>

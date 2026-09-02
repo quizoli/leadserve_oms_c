@@ -1,0 +1,179 @@
+/* =========================================
+   LEADSERVE OMS - ULTRA-MODERN & MINIMALIST THEME
+   (Apple / Linear Inspired - Supercharged)
+   ========================================= */
+
+:root {
+    --bg-page: #FAFAFC;
+    --bg-card: #FFFFFF;
+    --text-main: #1D1D1F;
+    --text-muted: #86868B;
+    --primary: #0071E3;
+    --primary-hover: #0077ED;
+    --border-light: rgba(0, 0, 0, 0.06);
+    --border-medium: rgba(0, 0, 0, 0.12);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+
+    --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html, body {
+    background: var(--bg-page) !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-stack) !important;
+}
+
+/* =========================================
+   FROSTED GLASS HEADER
+   ========================================= */
+header {
+    background: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    box-shadow: none !important;
+}
+
+header div { color: var(--text-main) !important; }
+header div[style*="font-size:12px"] { color: var(--text-muted) !important; }
+
+header button, header a {
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-medium) !important;
+    background: transparent !important;
+    border-radius: 99px !important;
+}
+
+header button:hover, header a:hover { background: rgba(0, 0, 0, 0.04) !important; }
+header img { background: transparent !important; border-radius: 0 !important; }
+
+/* =========================================
+   CARDS & PANELS
+   ========================================= */
+.card, .wrap > .section, .panel, .wrap {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* =========================================
+   BUTTONS
+   ========================================= */
+button, .btn {
+    background: #FFFFFF !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-medium) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow-sm) !important;
+    font-weight: 500 !important;
+    padding: 10px 18px !important;
+}
+
+button:hover, .btn:hover { background: #F5F5F7 !important; }
+
+.btn.primary, .btn-primary {
+    background: var(--primary) !important;
+    color: #FFFFFF !important;
+    border-color: transparent !important;
+}
+.btn.primary:hover { background: var(--primary-hover) !important; }
+
+.btn.danger { color: #FF3B30 !important; border-color: rgba(255, 59, 48, 0.3) !important; }
+
+/* =========================================
+   INPUTS & FIELDS
+   ========================================= */
+input, select, textarea {
+    border: 1px solid var(--border-medium) !important;
+    border-radius: var(--radius-md) !important;
+    background: #FAFAFC !important;
+    color: var(--text-main) !important;
+    padding: 10px 14px !important;
+    box-shadow: none !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    background: #FFFFFF !important;
+    border-color: var(--primary) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15) !important;
+}
+
+/* =========================================
+   TABLES
+   ========================================= */
+.table-wrap {
+    border: 1px solid var(--border-light) !important;
+    border-radius: var(--radius-md) !important;
+    background: #FFFFFF !important;
+}
+
+th {
+    background: #F5F5F7 !important;
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+}
+
+td {
+    border-bottom: 1px solid var(--border-light) !important;
+    color: var(--text-main) !important;
+}
+
+/* =========================================
+   PRINT STYLES
+   ========================================= */
+@media print {
+    body { background: #fff !important; color: #000 !important; }
+    header, footer, .noprint, .controls, .toolbar, .tabs { display: none !important; }
+    .card, .wrap, .table-wrap {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+
+ }
+/* =========================================
+   ACTIVE STATE FIX (Inventory Tabs & Selected Buttons)
+   ========================================= */
+button.active, .btn.active, .tab.active {
+    background: #E5F1FF !important; /* Soft light blue background */
+    color: #0056B3 !important; /* Bold primary blue text */
+    border: 1px solid #0071E3 !important; /* Blue border to pop */
+    font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.15) !important;
+}
+/* =========================================
+   MODULE HEADER OVERRIDE (Clean White Theme)
+   ========================================= */
+msn-header header {
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    border-bottom: 1px solid rgba(17, 24, 39, 0.08) !important;
+}
+
+/* Fix the text colors to dark */
+msn-header header .name {
+    color: #111827 !important;
+}
+msn-header header .meta {
+    color: #6b7280 !important;
+}
+
+/* Make the Home/Logout buttons sleek */
+msn-header header .btn {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid rgba(17, 24, 39, 0.15) !important;
+}
+msn-header header .btn:hover {
+    background: #f3f4f6 !important;
+}
+

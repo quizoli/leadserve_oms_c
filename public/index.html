@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LEADSERVE OMS</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link rel="icon" href="assets/logo.png">
+    <style>
+        :root{ --bg:#f5f5f7; --card:#ffffff; --text:#1d1d1f; --muted:#6e6e73; --line:#e5e5ea; --blue:#0071e3; --blue2:#0a84ff; --shadow:0 10px 30px rgba(0,0,0,.08); --radius:18px; }
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{ margin:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); }
+        /* Top bar */
+        .topbar{ position:sticky; top:0; z-index:50; backdrop-filter:saturate(180%) blur(18px); background:rgba(245,245,247,.82); border-bottom:1px solid var(--line); }
+        .topbar .inner{ max-width:1180px; margin:0 auto; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+        .brand{ display:flex; align-items:center; gap:12px; min-width:0; }
+        .brand img{ width:40px; height:40px; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.12); background:#fff; }
+        .brand .title{ line-height:1.1; min-width:0; }
+        .brand .title .name{ font-weight:700; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .brand .title .meta{ font-size:12.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .top-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
+        .btn{ appearance:none; border:1px solid var(--line); background:rgba(255,255,255,.75); color:var(--text); padding:9px 12px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; transition:transform .05s ease, background .2s ease, border-color .2s ease; text-decoration:none; display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
+        .btn:hover{background:#fff;border-color:#d2d2d7}
+        .btn:active{transform:translateY(1px)}
+        .btn.primary{ border-color:transparent; background:linear-gradient(180deg,var(--blue2),var(--blue)); color:#fff; }
+        .btn.primary:hover{filter:brightness(1.02)}
+        .btn.ghost{background:transparent}
+        .pill{ border:1px solid var(--line); background:#fff; padding:7px 10px; border-radius:999px; font-size:12px; color:var(--muted); }
+        /* Layout */
+        .shell{max-width:1180px;margin:0 auto;padding:22px 18px 34px}
+        .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:6px 0 18px}
+        .hero h1{margin:0;font-size:34px;letter-spacing:-.5px}
+        .hero p{margin:6px 0 0;color:var(--muted)}
+        .section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:18px 0 10px}
+        .section-title h2{margin:0;font-size:18px;letter-spacing:-.2px}
+        .section-title .sub{color:var(--muted);font-size:13px}
+        .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
+        /* Dashboard */
+        .dash-header{padding:16px 16px 12px}
+        .dash-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+        .dash-grid{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; padding:0 16px 14px; }
+        .kpi{ padding:14px; border-radius:16px; border:1px solid var(--line); background:linear-gradient(180deg,#fff, #fafafa); min-height:86px; }
+        .kpi .label{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.2px;text-transform:uppercase}
+        .kpi .value{font-size:28px;font-weight:800;letter-spacing:-.6px;margin-top:6px}
+        .kpi .sub{font-size:12.5px;color:var(--muted);margin-top:4px}
+        .table-wrap{padding:0 16px 16px}
+        /* Appt dashboard table sizing */
+        .table-wrap table{max-width:980px;margin:0 auto;}
+        @media (max-width: 1020px){ .table-wrap table{max-width:100%;} }
+        table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden}
+        thead th{ text-align:left; font-size:12px; color:var(--muted); letter-spacing:.2px; text-transform:uppercase; padding:10px 10px; border-bottom:1px solid var(--line); background:rgba(245,245,247,.6); position:sticky; top:0; }
+        tbody td{ padding:12px 10px; border-bottom:1px solid #f0f0f2; font-size:14px; vertical-align:top; }
+        tbody tr:hover{background:#fbfbfd}
+        .mono{font-variant-numeric:tabular-nums}
+        /* Modules */
+        .modules-grid{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:12px; }
+        .module-tile{ display:block; padding:14px 14px 12px; border-radius:18px; border:1px solid var(--line); background:#fff; text-decoration:none; color:inherit; box-shadow:0 8px 22px rgba(0,0,0,.06); transition:transform .06s ease, box-shadow .2s ease; min-height:110px; }
+        .module-tile:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,0,0,.10)}
+        .module-top{display:flex;align-items:center;gap:10px}
+        .module-ic{ width:40px;height:40px;border-radius:14px; display:grid;place-items:center; background:linear-gradient(180deg,#eef6ff,#ffffff); border:1px solid #dbe9ff; font-size:18px; }
+        .module-name{font-weight:800;letter-spacing:-.2px}
+        .module-desc{margin-top:8px;color:var(--muted);font-size:12.5px;line-height:1.35}
+        footer{ margin-top:22px; padding:18px 0 10px; color:var(--muted); text-align:center; font-size:12.5px; }
+        /* Responsive */
+        @media (max-width: 980px){ .dash-grid{grid-template-columns:repeat(2, minmax(0,1fr))} .modules-grid{grid-template-columns:repeat(2, minmax(0,1fr))} .hero{flex-direction:column;align-items:flex-start} }
+        @media (max-width: 520px){ .dash-grid{grid-template-columns:1fr} .modules-grid{grid-template-columns:1fr} .hero h1{font-size:26px} thead{display:none} table, tbody, tr, td{display:block;width:100%} tbody tr{border-bottom:1px solid var(--line)} tbody td{border:none;border-bottom:1px solid #f0f0f2} tbody td:before{content:attr(data-label);display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.2px;margin-bottom:3px} }
+        /* --- Blue brand header/footer override --- */
+        .topbar.topbar-blue{ background: linear-gradient(135deg, #0b3a66, #145a8c 55%, #0b3a66); color:#fff; border-bottom: 1px solid rgba(255,255,255,.12); }
+        .topbar.topbar-blue .name{ color:#fff; }
+        .topbar.topbar-blue .meta{ color: rgba(255,255,255,.88); }
+        .topbar.topbar-blue .brand img{ background: rgba(255,255,255,.92); border-radius: 10px; padding: 6px; width: 54px; height: 54px; object-fit: contain; }
+        .topbar.topbar-blue .top-actions .btn.home{ background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color:#fff; font-weight:600; }
+        .topbar.topbar-blue .top-actions .btn.home:hover{ background: rgba(255,255,255,.18); }
+        .footer.blue{ background: linear-gradient(135deg, #0b3a66, #145a8c 55%, #0b3a66); color: rgba(255,255,255,.92); border-top: 1px solid rgba(255,255,255,.12); }
+        /* spacing tweaks */
+        #apptDashboard{ margin-bottom: 26px; }
+        .modules-grid{ gap: 18px; }
+        .module-tile{ margin-top: 0; }
+    </style>
+</head>
+<body>
+    <header class="topbar topbar-blue">
+        <div class="inner">
+            <div class="brand">
+                <img src="assets/logo.png" alt="LEADSERVE OMS" onerror="this.style.display='none'">
+                <div class="title">
+                    <div class="name">LEADSERVE OMS</div>
+                    <div class="meta">Demo City, Philippines</div>
+                    <div class="meta">Contact: Contact details available at the clinic • Physician: Attending Ophthalmologist</div>
+                </div>
+            </div>
+            <div class="top-actions">
+                <button class="btn home" id="btnLogout" type="button" style="display:none">Logout</button>
+                <a class="btn home" href="index.html" title="Home">Home</a>
+            </div>
+        </div>
+    </header>
+    <section id="loginWrapper" class="shell" style="display:none; max-width:520px;">
+        <div class="card" style="padding:18px 18px 16px;">
+            <div style="display:flex;gap:12px;align-items:center;">
+                <img src="assets/logo.png" alt="LEADSERVE OMS" style="width:52px;height:52px;border-radius:14px;object-fit:contain;background:#fff;border:1px solid var(--line);" onerror="this.style.display='none'">
+                <div>
+                    <div style="font-weight:800;font-size:18px;letter-spacing:-.2px;">LEADSERVE OMS</div>
+                    <div style="color:var(--muted);font-size:13px;margin-top:2px;">Please sign in to continue</div>
+                </div>
+            </div>
+            <div style="margin-top:14px;">
+                <label style="display:block;font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.2px;margin-bottom:6px;">Email</label>
+                <input id="loginEmail" type="email" autocomplete="username" placeholder="Email" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:14px;">
+                <label style="display:block;font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.2px;margin:10px 0 6px;">Password</label>
+                <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;font-size:14px;">
+                <button class="btn primary" id="btnLogin" type="button" style="width:100%;justify-content:center;margin-top:12px;">Login</button>
+                <div id="loginError" style="margin-top:10px;color:#b42318;font-size:13px;display:none;"></div>
+            </div>
+            <div style="margin-top:12px;color:var(--muted);font-size:12.5px;line-height:1.35;"> If you don't have an account yet, use the existing <b>login.html</b> signup page (admin-controlled), or have the admin create one. </div>
+        </div>
+    </section>
+    <div id="appWrapper" style="display:none;">
+        <main class="shell">
+            <div class="hero">
+                <div>
+                    <h1>Ophthalmology Management System</h1>
+                </div>
+            </div>
+            <section id="apptDashboard" class="card">
+                <div class="dash-header">
+                    <div class="dash-row">
+                        <div>
+                            <div class="section-title">
+                                <h2>Appointment Schedule</h2>
+                                <div class="sub" id="apptDashSub">Loading appointments…</div>
+                            </div>
+                        </div>
+                        <div class="dash-actions">
+                            <a class="btn primary" href="modules/consultation/index.html#appts" style="text-decoration:none">Open Scheduler</a>
+                            <button class="btn" id="btnApptDashRefresh" type="button">Refresh</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="dash-grid">
+                    <div class="kpi">
+                        <div class="label">Today</div>
+                        <div class="value" id="kpiToday">—</div>
+                        <div class="sub" id="kpiTodaySub">—</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">Tomorrow</div>
+                        <div class="value" id="kpiTomorrow">—</div>
+                        <div class="sub" id="kpiTomorrowSub">—</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">Next 7 Days</div>
+                        <div class="value" id="kpiWeek">—</div>
+                        <div class="sub" id="kpiWeekSub">—</div>
+                    </div>
+                    <div class="kpi">
+                        <div class="label">Walk-in vs Scheduled (Next 7 Days)</div>
+                        <div class="value" id="kpiMode">—</div>
+                        <div class="sub">Walk-in / Scheduled</div>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table id="tblApptDash">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time / Slot</th>
+                                <th>Patient</th>
+                                <th>Type</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+
+            </section>
+            <div class="section-title" style="margin-top:18px">
+                <h2>Modules</h2>
+                <div class="sub">Tap a module to open</div>
+            </div>
+            <div class="modules-grid">
+                <a class="module-tile" href="modules/registration/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">👤</div>
+                        <div class="module-name">Patient Registration</div>
+                    </div>
+                    <div class="module-desc">Create and manage patient profiles, demographics, and attachments.</div>
+                </a>
+                <a class="module-tile" href="modules/consultation/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">🩺</div>
+                        <div class="module-name">Booking &amp; Consultation</div>
+                    </div>
+                    <div class="module-desc">Appointments, consultation notes, and integrated charge slip + POS.</div>
+                </a>
+                <a class="module-tile" data-module="prescription" href="modules/prescription/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">📝</div>
+                        <div class="module-name">Prescription</div>
+                    </div>
+                    <div class="module-desc">Digital prescriptions and printable outputs.</div>
+                </a>
+                <a class="module-tile" data-module="inventory" href="modules/inventory/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">📦</div>
+                        <div class="module-name">Inventory</div>
+                    </div>
+                    <div class="module-desc">Medicines and supplies, stock movements, and re-order tracking.</div>
+                </a>
+                <a class="module-tile" data-module="procurement" href="modules/procurement/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">🧾</div>
+                        <div class="module-name">Procurement</div>
+                    </div>
+                    <div class="module-desc">PR / PO / GRN workflow with supplier records.</div>
+                </a>
+                <a class="module-tile" data-module="philhealth" href="modules/philhealth/cf4/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">🏥</div>
+                        <div class="module-name">PhilHealth CF4</div>
+                    </div>
+                    <div class="module-desc">Capture CF4 (eClaims) for the active encounter and prepare for submission.</div>
+                </a>
+                <a class="module-tile" data-module="hr" href="modules/hr/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">👥</div>
+                        <div class="module-name">HR</div>
+                    </div>
+                    <div class="module-desc">Employees, attendance, loans / cash advance, and HR settings.</div>
+                </a>
+                <a class="module-tile" href="modules/settings/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">⚙️</div>
+                        <div class="module-name">System Settings</div>
+                    </div>
+                    <div class="module-desc">Manage clinic physicians, system variables, and administrator configurations.</div>
+                </a>
+                <a class="module-tile" data-module="reports" href="modules/reports/index.html">
+                    <div class="module-top">
+                        <div class="module-ic">📊</div>
+                        <div class="module-name">Clinic Reports</div>
+                    </div>
+                    <div class="module-desc">Generate OPD Census, sales reports, and clinic analytics.</div>
+                </a>
+            </div>
+        </main>
+        <footer>LEADSERVE OMS • Demo City, Philippines • Contact: Contact details available at the clinic</footer>
+    </div>
+
+    <script src="config.js"></script>
+
+    <script>
+        // Pluggable modules: hide any add-on tile whose flag is off for this tenant.
+        // Core tiles (registration, consultation, settings) carry no data-module and
+        // always show. NOTE: this is convenience gating only — real per-module
+        // entitlement must be enforced server-side (Firestore rules). See ROADMAP.
+        (function () {
+            var mods = (window.OMS_CONFIG && window.OMS_CONFIG.modules) || {};
+            document.addEventListener("DOMContentLoaded", function () {
+                document.querySelectorAll(".module-tile[data-module]").forEach(function (tile) {
+                    if (mods[tile.getAttribute("data-module")] !== true) {
+                        tile.style.display = "none";
+                    }
+                });
+            });
+        })();
+    </script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="assets/leadserve-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // Initialize using the keys from config.js dynamically
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.OMS_CONFIG.firebase);
+        }
+
+        // Set Auth Persistence
+        try {
+            if (firebase?.auth && firebase.auth.Auth?.Persistence) {
+                firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION);
+            }
+        } catch(e) {}
+
+        // UPDATED: Bulletproof Idle Timer Logic (Matches header.js)
+        const IDLE_TIMEOUT_MS = 180000; // 3 minutes
+        let __idleTimer = null;
+
+        function __clearIdleTimer() {
+            if (__idleTimer) {
+                clearTimeout(__idleTimer);
+                __idleTimer = null;
+            }
+        }
+
+        function __kickIdleTimer() {
+            __clearIdleTimer();
+            if (firebase && firebase.auth && firebase.auth().currentUser) {
+                __idleTimer = setTimeout(() => {
+                    firebase.auth().signOut().then(() => {
+                        alert("You have been logged out due to inactivity.");
+                    }).catch(e => console.error(e));
+                }, IDLE_TIMEOUT_MS);
+            }
+        }
+
+        function __startIdleWatch() {
+            __stopIdleWatch();
+            // Track all interactions to prevent false-positive logouts
+            const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "wheel", "touchmove", "MSPointerMove"];
+            const handler = () => __kickIdleTimer();
+
+            events.forEach(e => window.addEventListener(e, handler, { passive: true }));
+            __kickIdleTimer(); // start clock
+
+            window.__idleWatch = { events: events, handler: handler };
+        }
+
+        function __stopIdleWatch() {
+            __clearIdleTimer();
+            const watch = window.__idleWatch;
+            if (watch && watch.events && watch.handler) {
+                watch.events.forEach(e => window.removeEventListener(e, watch.handler));
+            }
+            window.__idleWatch = null;
+        }
+
+        // Initialize Database and Auth instances
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+    </script>
+
+    <script>!function(){const t=t=>document.getElementById(t);function e(t){return String(t).padStart(2,"0")}function n(t){return t.getFullYear()+"-"+e(t.getMonth()+1)+"-"+e(t.getDate())}function o(t,e){const o=String(t||"").split("-"),a=Number(o[0]||0),i=Number(o[1]||1)-1,r=Number(o[2]||1),d=new Date(a,i,r);return d.setDate(d.getDate()+Number(e||0)),n(d)}async function a(){const t=(await db.collection("patients").get()).docs.map((t=>({...t.data(),id:t.data()?.id??t.id}))),o=new Map;t.forEach((t=>{o.set(t.id,t),o.set(String(t.id),t);const e=Number(t.id);Number.isNaN(e)||o.set(e,t)}));const a=["appts","appointments","appointment","bookings","booking","schedules","schedule"];let i=null,r=null;for(const t of a)try{const e=await db.collection(t).get();if(e&&e.size){i=t,r=e;break}r||(r=e)}catch(t){}return{appts:(r?r.docs.map((t=>({...t.data(),_docId:t.id}))):[]).map((t=>function(t){const o={...t};o.patientId=t.patientId??t.patientID??t.patient_id??t.patient??t.pid??"",o.mode=t.mode??t.type??t.appointmentType??"",o.slot=t.slot??t.time??t.timeSlot??t.timeslot??"",o.reason=t.reason??t.complaint??t.notes??"";const a=t.date??t.apptDate??t.appointmentDate??t.scheduleDate??t.schedDate??t.day??null;return o.date=function(t){if(!t)return"";if("object"==typeof t&&null!==t){if("function"==typeof t.toDate){return n(t.toDate())}if(t instanceof Date)return n(t)}const o=String(t).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(o))return o;const a=o.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(a){const t=e(Number(a[1])),n=e(Number(a[2]));return`${a[3]}-${t}-${n}`}const i=new Date(o);return Number.isNaN(i.getTime())?"":n(i)}(a),o}(t))),map:o,source:i||"unknown"}}function i(t){return(t||[]).filter((t=>t&&t.date)).sort(((t,e)=>String(t.date).localeCompare(String(e.date))||String(t.slot||"").localeCompare(String(e.slot||""))||(e.created||0)-(t.created||0)))}function r(e,n){const o=t(e);o&&(o.textContent=n)}async function d(){const e=t("apptDashSub"),d=document.querySelector("#tblApptDash tbody"),s=n(new Date),c=o(s,1),l=o(s,7);try{e.textContent="Loading from Firestore…";const t=Date.now(),{appts:n,map:o}=await a(),p=i(n).filter((t=>t.date>=s&&t.date<l)),u=p.filter((t=>t.date===s)),m=p.filter((t=>t.date===c)),f=i(n).filter((t=>t.date>=s&&t.date<l));let g=0,h=0;f.forEach((t=>{String(t.mode||"").toLowerCase().includes("walk")?g++:h++})),r("kpiToday",String(u.length)),r("kpiTomorrow",String(m.length)),r("kpiWeek",String(f.length)),r("kpiMode",g+" / "+h),r("kpiTodaySub",u.length?"Next: "+(u[0].slot||"—"):"No appointments"),r("kpiTomorrowSub",m.length?"First: "+(m[0].slot||"—"):"No appointments"),r("kpiWeekSub","Through "+l);const b=f.slice(0,25);d.innerHTML="",b.length?b.forEach((t=>{const pat=o.get(t.patientId)||o.get(String(t.patientId))||o.get(Number(t.patientId))||{};const patName=((pat.firstName||pat.fname||"")+" "+(pat.lastName||pat.lname||"")).trim()||pat.name||"—";const e=document.createElement("tr");e.innerHTML="<td><div><b>"+(t.date||"")+"</b></div></td><td>"+(t.slot||"")+"</td><td style='font-weight:600;'>"+patName+"</td><td>"+function(t){const e=String(t||"").toLowerCase();return e.includes("walk")?"Walk-in":e.includes("sched")?"Scheduled":t||""}(t.mode)+"</td><td>"+(t.reason||"")+"</td>",d.appendChild(e)})):d.innerHTML="<tr><td colspan='5' class='muted'>No upcoming appointments in the next 7 days.</td></tr>";const S=Date.now()-t;e.textContent="Updated "+(new Date).toLocaleString()+" • "+n.length+" total appointments • "+S+" ms"}catch(t){e.textContent="Dashboard could not load appointments. Check internet connection and Firestore rules.",d.innerHTML="<tr><td colspan='5' class='muted'>Unable to load appointments.</td></tr>"}}document.addEventListener("DOMContentLoaded",(()=>{firebase&&firebase.auth&&firebase.auth().onAuthStateChanged((e=>{e?(!function(){const e=t("btnApptDashRefresh");e&&e.addEventListener("click",(t=>{t.preventDefault(),d()})),d()}(),__startIdleWatch()):__stopIdleWatch()}))}))}();</script>
+    <script>!function(){const n=n=>document.getElementById(n),e=n("loginWrapper"),t=n("appWrapper"),a=n("btnLogin"),i=n("btnLogout"),o=n("loginError");function s(n){o&&(o.style.display=n?"block":"none",o.textContent=n||"")}function l(n){e&&(e.style.display=n?"none":"block"),t&&(t.style.display=n?"block":"none"),i&&(i.style.display=n?"inline-flex":"none")}async function d(){s("");const e=(n("loginEmail")?.value||"").trim(),t=n("loginPassword")?.value||"";if(e&&t)try{await firebase.auth().signInWithEmailAndPassword(e,t)}catch(n){s(n?.message||"Login failed.")}else s("Please enter email and password.")}async function c(){try{await firebase.auth().signOut()}catch(n){}}document.addEventListener("DOMContentLoaded",(()=>{a&&a.addEventListener("click",d),i&&i.addEventListener("click",c);const e=n("loginPassword");e&&e.addEventListener("keydown",(n=>{"Enter"===n.key&&d()}));const t=n("loginEmail");t&&t.addEventListener("keydown",(n=>{"Enter"===n.key&&d()}));try{firebase.auth().onAuthStateChanged((n=>{l(!!n),n?__startIdleWatch():__stopIdleWatch()}))}catch(n){l(!0)}}))}();</script>
+</body>
+</html>

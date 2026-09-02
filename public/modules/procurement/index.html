@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LEADSERVE OMS - Procurement (PR / PO / GRN)</title>
+<link rel="icon" href="../../assets/logo.png">
+
+<script src="../../config.js"></script>
+<script src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../assets/leadserve-firestore.js"></script>
+
+<script defer src="../../assets/header.js"></script>
+
+<script>
+    if (!firebase.apps.length) {
+        firebase.initializeApp(window.OMS_CONFIG.firebase);
+    }
+</script>
+
+<style>
+  :root { --bg:#f6f7fb; --card:#fff; --bd:#e5e7eb; --mut:#6b7280; --pri:#0ea5e9; --red:#ef4444; --ok:#16a34a; --ink:#0f172a; --ink-2:#334155; --ink-3:#64748b; }
+  *{ box-sizing:border-box; font-family: ui-sans-serif,system-ui,Segoe UI,Arial; }
+  body{ margin:0; background:var(--bg); color:var(--ink); }
+  .wrap{ max-width:1200px; margin:24px auto; padding:0 12px; }
+
+  .tabs{ display:flex; gap:8px; margin:16px 0 12px; flex-wrap:wrap; }
+  .tab{ padding:10px 14px; border:1px solid var(--bd); border-bottom:0; background:#f9fafb; border-radius:10px 10px 0 0; cursor:pointer; color:#0b4a6e; font-weight:600; }
+  .tab.active{ background:#fff; border-color:#cfd3d9; }
+  .card{ background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .row{ display:grid; grid-template-columns:repeat(12,1fr); gap:10px; }
+  .section-title{ font-weight:800; font-size:18px; margin-bottom:8px; }
+  label{ font-size:12px; color:var(--ink-3); display:block; margin-bottom:6px; }
+  input, select, textarea, button{ border:1px solid var(--bd); border-radius:10px; padding:8px 10px; background:#fff; width:100%; font-size:13px; }
+  textarea{ resize:vertical; min-height:60px; }
+  input[type=number]{ text-align:right; }
+  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+  .btn{ cursor:pointer; width:auto; white-space:nowrap; }
+  .btn.pri{ background:var(--pri); color:#fff; border-color:var(--pri); }
+  .btn.ok{ background:var(--ok); color:#fff; border-color:var(--ok); }
+  .btn.red{ background:#fff; color:var(--red); border-color:var(--red); }
+  .btn.ghost{ background:#fff; color:#111827; border-color:var(--bd); }
+  .mut{ color:var(--ink-3) }
+  .table{ width:100%; border-collapse:collapse; }
+  .table th,.table td{ border-bottom:1px solid var(--bd); padding:8px; vertical-align:top; font-size:13px; }
+  .table th{ background:#f8fafc; font-weight:700; color:#0b4a6e }
+  .right{ text-align:right; }
+  .center{ text-align:center; }
+  .totals{ display:grid; grid-template-columns:1fr; gap:4px; }
+  .totals .rowline{ display:flex; justify-content:space-between; }
+  .hr{ height:1px; background:var(--bd); margin:8px 0; }
+  .badge{ font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--bd); background:#f3f4f6; display:inline-block; }
+  /* Print templates */
+  .p-wrap{ font-family:Segoe UI,Arial; margin:18px; }
+  .p-h{ text-align:center; margin:0 }
+  .p-meta{ text-align:center; color:#6b7280; font-size:12px; margin:4px 0 8px }
+  .p-sec{ font-size:16px; font-weight:700; margin:14px 0 6px }
+  .p-table{ width:100%; border-collapse:separate; border-spacing:0 6px; font-size:13px }
+  .p-table th{ text-align:left; color:#374151; font-weight:700; padding:6px 4px; border-bottom:1px solid #e5e7eb }
+  .p-table td{ padding:6px 4px; }
+  .p-right{ text-align:right }
+  .p-center{ text-align:center }
+  @media print{
+    header, .tabs, .toolbar, .no-print{ display:none !important; }
+    body{ background:#fff; }
+    .card{ border:none; box-shadow:none; padding:0; margin:0; }
+  }
+</style>
+</head>
+<body>
+
+<msn-header></msn-header>
+
+<div class="wrap">
+  <div class="tabs no-print">
+    <div class="tab active" data-view="pr">Purchase Requisition</div>
+    <div class="tab" data-view="po">Purchase Order</div>
+    <div class="tab" data-view="grn">Goods Receipt</div>
+  </div>
+
+  <div id="view-pr">
+    <div class="card">
+      <div class="row" style="align-items:end">
+        <div class="section-title" style="grid-column:span 6">Purchase Requisition</div>
+        <div class="toolbar" style="grid-column:span 6">
+          <button class="btn ghost" id="btnPrNew">New</button>
+          <button class="btn pri" id="btnPrSave">Save</button>
+          <button class="btn ok" id="btnPrSubmit">Submit</button>
+          <button class="btn ok" id="btnPrApprove" style="display:none;">Approve</button>
+          <button class="btn red" id="btnPrDelete">Delete</button>
+          <button class="btn ghost" id="btnPrPrint">Print</button>
+          <button class="btn ghost" id="btnPrExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="row">
+        <div style="grid-column:span 4"><label>Supplier</label><input id="prSupplier" placeholder="Supplier name"/></div>
+        <div style="grid-column:span 3"><label>Quotation No.</label><input id="prQuotation" placeholder="Quotation reference"/></div>
+        <div style="grid-column:span 2"><label>Date Requested</label><input id="prDate" type="date"/></div>
+        <div style="grid-column:span 2"><label>PR No.</label><input id="prNo" readonly/></div>
+        <div style="grid-column:span 1"><label>Status</label><div class="badge" id="prStatus">NEW</div></div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div style="grid-column:span 6"><label>Requested By</label><input id="prRequestedBy" placeholder="Name of requester"/></div>
+        <div style="grid-column:span 6"><label>Department / Cost Center</label><input id="prDept" placeholder="Optional"/></div>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <div style="grid-column:span 12; font-weight:700"> Items to Purchase <span class="mut">(description, quantity, unit, unit price)</span></div>
+        <div style="grid-column:span 12">
+          <table class="table" id="tblPrItems">
+            <thead>
+              <tr><th style="width:40%">Item Description</th><th style="width:10%" class="center">Qty</th><th style="width:10%" class="center">Unit</th><th style="width:15%" class="center">Unit Price</th><th style="width:15%" class="center">Line Total</th><th style="width:10%"></th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="toolbar no-print" style="justify-content:flex-start;margin-top:6px"><button class="btn ghost" id="btnPrAddItem">+ Add Item</button></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div style="grid-column:span 6"><label>Remarks / Justification</label><textarea id="prRemarks" placeholder="Purpose, justification, notes"></textarea></div>
+        <div style="grid-column:span 6">
+          <div class="totals"><div class="rowline"><span class="mut">Total Amount</span><b id="prTotal">₱0.00</b></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Purchase Requisition History <span class="mut" id="prCount">0</span></div>
+      <table class="table" id="tblPrHistory">
+        <thead><tr><th>Date</th><th>PR No.</th><th>Supplier</th><th>Requested By</th><th class="right">Total</th><th>Status</th><th>Quotation No.</th><th>Open</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="view-po" style="display:none">
+    <div class="card">
+      <div class="row" style="align-items:end">
+        <div class="section-title" style="grid-column:span 6">Purchase Order</div>
+        <div class="toolbar" style="grid-column:span 6">
+          <button class="btn ghost" id="btnPoNew">New</button>
+          <button class="btn ghost" id="btnPoFromPr">From PR</button>
+          <button class="btn pri" id="btnPoSave">Save</button>
+          <button class="btn red" id="btnPoDelete">Delete</button>
+          <button class="btn ghost" id="btnPoPrint">Print</button>
+          <button class="btn ghost" id="btnPoExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="row">
+        <div style="grid-column:span 4"><label>Supplier</label><input id="poSupplier" placeholder="Supplier name"/></div>
+        <div style="grid-column:span 2"><label>PO Date</label><input id="poDate" type="date"/></div>
+        <div style="grid-column:span 2"><label>PO No.</label><input id="poNo" readonly/></div>
+        <div style="grid-column:span 2"><label>Related PR</label><select id="poPrRef"><option value="">-- Select Approved PR --</option></select></div>
+        <div style="grid-column:span 2"><label>Quotation No.</label><input id="poQuotation" placeholder="Quotation reference"/></div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div style="grid-column:span 4"><label>Terms of Payment</label><input id="poTerms" placeholder="e.g. 30 days, COD, etc."/></div>
+        <div style="grid-column:span 4"><label>Delivery Date</label><input id="poDeliveryDate" type="date"/></div>
+        <div style="grid-column:span 4"><label>Delivery Location / Ship To</label><input id="poDeliveryLoc" placeholder="Clinic / address"/></div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div style="grid-column:span 12"><label>Particulars</label><textarea id="poParticulars" placeholder="Other details, instructions, notes"></textarea></div>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <div style="grid-column:span 12; font-weight:700"> Order Items <span class="mut">(copied from PR or entered manually)</span></div>
+        <div style="grid-column:span 12">
+          <table class="table" id="tblPoItems">
+            <thead><tr><th style="width:40%">Item Description</th><th style="width:10%" class="center">Qty</th><th style="width:10%" class="center">Unit</th><th style="width:15%" class="center">Unit Price</th><th style="width:15%" class="center">Line Total</th><th style="width:10%"></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="toolbar no-print" style="justify-content:flex-start;margin-top:6px"><button class="btn ghost" id="btnPoAddItem">+ Add Item</button></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div style="grid-column:span 6">
+          <div class="section-title" style="font-size:14px;margin-bottom:4px">Approvals</div>
+          <div class="row">
+            <div style="grid-column:span 4"><label>Prepared By</label><input id="poPreparedBy" placeholder="Prepared by"/></div>
+            <div style="grid-column:span 4"><label>Checked By</label><input id="poCheckedBy" placeholder="Checked by"/></div>
+            <div style="grid-column:span 4"><label>Approved By</label><input id="poApprovedBy" placeholder="Approved by"/></div>
+          </div>
+        </div>
+        <div style="grid-column:span 6">
+          <div class="totals"><div class="rowline"><span class="mut">Total Amount</span><b id="poTotal">₱0.00</b></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Purchase Order History <span class="mut" id="poCount">0</span></div>
+      <table class="table" id="tblPoHistory">
+        <thead><tr><th>Date</th><th>PO No.</th><th>Supplier</th><th>Related PR</th><th class="right">Total</th><th>Terms</th><th>Delivery Date</th><th>Open</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="view-grn" style="display:none">
+    <div class="card">
+      <div class="row" style="align-items:end">
+        <div class="section-title" style="grid-column:span 6">Goods Receipt Note</div>
+        <div class="toolbar" style="grid-column:span 6">
+          <button class="btn ghost" id="btnGrNew">New</button>
+          <button class="btn pri" id="btnGrSave">Save</button>
+          <button class="btn red" id="btnGrDelete">Delete</button>
+          <button class="btn ghost" id="btnGrPrint">Print</button>
+          <button class="btn ghost" id="btnGrExport">Export CSV</button>
+        </div>
+      </div>
+      <div class="row">
+        <div style="grid-column:span 3"><label>GRN No.</label><input id="grNo" readonly/></div>
+        <div style="grid-column:span 3"><label>Date Received</label><input id="grDate" type="date"/></div>
+        <div style="grid-column:span 3"><label>Related PO</label><select id="grPoRef"><option value="">-- Select PO --</option></select></div>
+        <div style="grid-column:span 3"><label>Delivery Note / DR No.</label><input id="grDn" placeholder="DR / Delivery receipt number"/></div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div style="grid-column:span 4"><label>Supplier</label><input id="grSupplier" placeholder="Supplier name"/></div>
+        <div style="grid-column:span 4"><label>Received By</label><input id="grReceivedBy" placeholder="Name of receiver"/></div>
+        <div style="grid-column:span 4"><label>Checked By</label><input id="grCheckedBy" placeholder="Name of checker"/></div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <div style="grid-column:span 12"><label>Remarks</label><textarea id="grRemarks" placeholder="Condition of goods, discrepancies, notes"></textarea></div>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <div style="grid-column:span 12; font-weight:700"> Received Items </div>
+        <div style="grid-column:span 12">
+          <table class="table" id="tblGrItems">
+            <thead><tr><th style="width:40%">Item Description</th><th style="width:10%" class="center">Qty Received</th><th style="width:10%" class="center">Unit</th><th style="width:40%">Remarks</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="toolbar no-print" style="justify-content:flex-start;margin-top:6px"><button class="btn ghost" id="btnGrAddItem">+ Add Item</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Goods Receipt History <span class="mut" id="grCount">0</span></div>
+      <table class="table" id="tblGrHistory">
+        <thead><tr><th>Date</th><th>GRN No.</th><th>PO Ref</th><th>Supplier</th><th>DR No.</th><th>Open</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const db = firebase.firestore();
+
+// --- AUTHENTICATION & ROLE LOGIC ---
+const auth = firebase.auth();
+let currentUser = null;
+
+// Allow the specific clinic owner's email to approve, otherwise fallback to admin
+const APPROVERS = [
+    window.OMS_CONFIG?.contactInfo ? window.OMS_CONFIG.contactInfo.split(' • ')[1] : "Contact details available at the clinic",
+    "admin@leadserve.demo"
+];
+
+// Listen for the logged-in user
+auth.onAuthStateChanged(user => {
+    if (user) {
+        currentUser = user;
+        if (APPROVERS.includes(user.email)) {
+            if (el("btnPrApprove")) el("btnPrApprove").style.display = "inline-block";
+        } else {
+            if (el("btnPrApprove")) el("btnPrApprove").style.display = "none";
+        }
+    } else {
+        window.location.href = '../../index.html';
+    }
+});
+// -----------------------------------
+</script>
+
+<script>
+const money=e=>"₱"+Number(e||0).toLocaleString(void 0,{minimumFractionDigits:2,maximumFractionDigits:2}),el=e=>document.getElementById(e),today=()=>(new Date).toISOString().slice(0,10),idSuffix=e=>(e||"").slice(-6).toUpperCase();function exportCsv(e,t){const r=e.map((e=>e.map((e=>String(e).replace(/"/g,'""'))).map((e=>`"${e}"`)).join(","))).join("\n"),o=new Blob(["\ufeff"+r],{type:"text/csv;charset=utf-8;"}),a=document.createElement("a");a.href=URL.createObjectURL(o),a.download=t,a.click(),setTimeout((()=>URL.revokeObjectURL(a.href)),500)}function openPrintWindow(e,t){const r=window.open("","_blank"),o=document.querySelector("style").innerHTML;r.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+t+"</title><style>"+o+"</style></head><body>"+e+"</body></html>"),r.document.close(),r.onload=()=>{r.focus(),r.print(),setTimeout((()=>r.close()),400)}}let currentPrId=null,currentPoId=null,currentGrId=null;function recalcPr(){const e=[...document.querySelectorAll("#tblPrItems tbody tr")];let t=0;e.forEach((e=>{const r=Number(e.querySelector('[data-f="qty"]').value||0)*Number(e.querySelector('[data-f="unitPrice"]').value||0);e.querySelector('[data-f="lineTotal"]').textContent=money(r),t+=r})),el("prTotal").textContent=money(t)}function addPrItemRow(e){e=e||{desc:"",qty:1,unit:"",unitPrice:0};const t=document.createElement("tr");t.innerHTML=`\n <td><input data-f="desc" placeholder="Description" value="${e.desc||""}"/></td>\n <td class="center"><input data-f="qty" type="number" min="0" step="1" value="${e.qty||1}"/></td>\n <td class="center"><input data-f="unit" placeholder="pc, box, set" value="${e.unit||""}"/></td>\n <td class="center"><input data-f="unitPrice" type="number" min="0" step="0.01" value="${e.unitPrice||0}"/></td>\n <td class="center"><span data-f="lineTotal">₱0.00</span></td>\n <td><button class="btn red no-print" data-act="del">Delete</button></td>\n `,document.querySelector("#tblPrItems tbody").appendChild(t),t.addEventListener("input",recalcPr);const r=t.querySelector('[data-act="del"]');r&&(r.onclick=()=>{t.remove(),recalcPr()}),recalcPr()}function collectPrPayload(e){const t=[...document.querySelectorAll("#tblPrItems tbody tr")].map((e=>({desc:e.querySelector('[data-f="desc"]').value.trim(),qty:Number(e.querySelector('[data-f="qty"]').value||0),unit:e.querySelector('[data-f="unit"]').value.trim(),unitPrice:Number(e.querySelector('[data-f="unitPrice"]').value||0)}))).filter((e=>e.desc)),r=t.reduce(((e,t)=>e+t.qty*t.unitPrice),0),o={prNo:el("prNo").value.trim()||null,date:el("prDate").value||today(),supplier:el("prSupplier").value.trim(),quotation:el("prQuotation").value.trim(),requestedBy:el("prRequestedBy").value.trim(),dept:el("prDept").value.trim(),remarks:el("prRemarks").value.trim(),status:el("prStatus").textContent||"NEW",items:t,total:r,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};return Object.assign(o,e||{})}function setPrForm(e){currentPrId=e.id,el("prNo").value=e.prNo||"",el("prDate").value=e.date||today(),el("prSupplier").value=e.supplier||"",el("prQuotation").value=e.quotation||"",el("prRequestedBy").value=e.requestedBy||"",el("prDept").value=e.dept||"",el("prRemarks").value=e.remarks||"",el("prStatus").textContent=e.status||"NEW";document.querySelector("#tblPrItems tbody").innerHTML="",(e.items||[]).forEach(addPrItemRow),e.items&&e.items.length||addPrItemRow(),el("prTotal").textContent=money(e.total||0)}function newPrForm(){currentPrId=null,el("prNo").value="",el("prDate").value=today(),el("prSupplier").value="",el("prQuotation").value="",el("prRequestedBy").value="",el("prDept").value="",el("prRemarks").value="",el("prStatus").textContent="NEW";document.querySelector("#tblPrItems tbody").innerHTML="",addPrItemRow(),recalcPr()}async function savePr(e){let t=collectPrPayload();e&&(t.status=e,el("prStatus").textContent=e);const r=db.collection("proc_pr");if(currentPrId)await r.doc(currentPrId).set(t,{merge:!0});else{t.createdAt=firebase.firestore.FieldValue.serverTimestamp();const e=await r.add(t);if(currentPrId=e.id,!t.prNo){const r="PR-"+idSuffix(e.id);await e.update({prNo:r}),t.prNo=r,el("prNo").value=r}}return await refreshPrHistory(),await refreshPoPrDropdown(),alert("Purchase Requisition saved."),t}async function deletePr(){currentPrId?confirm("Delete this Purchase Requisition?")&&(await db.collection("proc_pr").doc(currentPrId).delete(),currentPrId=null,await refreshPrHistory(),await refreshPoPrDropdown(),newPrForm(),alert("Purchase Requisition deleted.")):alert("No PR selected.")}async function refreshPrHistory(){const e=await db.collection("proc_pr").orderBy("date","desc").get(),t=el("tblPrHistory").querySelector("tbody");t.innerHTML="",el("prCount").textContent=e.size,e.forEach((e=>{const r=e.data(),o=document.createElement("tr");o.innerHTML=`\n <td>${r.date||""}</td>\n <td>${r.prNo||""}</td>\n <td>${r.supplier||""}</td>\n <td>${r.requestedBy||""}</td>\n <td class="right">${money(r.total||0)}</td>\n <td>${r.status||""}</td>\n <td>${r.quotation||""}</td>\n <td><button class="btn ghost no-print" data-id="${e.id}">Open</button></td>\n `,o.querySelector("button").onclick=async()=>{const t=await db.collection("proc_pr").doc(e.id).get();t.exists&&setPrForm({id:t.id,...t.data()})},t.appendChild(o)}))}async function exportPrCsv(){const e=await db.collection("proc_pr").orderBy("date","desc").get(),t=[["Date","PR No","Supplier","Requested By","Dept","Quotation","Total","Status","Remarks"]];e.forEach((e=>{const r=e.data();t.push([r.date||"",r.prNo||"",r.supplier||"",r.requestedBy||"",r.dept||"",r.quotation||"",r.total||0,r.status||"",r.remarks||""])})),exportCsv(t,"purchase_requisitions.csv")}
+
+// ----------------------------------------------------
+// DYNAMIC PRINT PR
+// ----------------------------------------------------
+function printPr(){
+    let e;if(currentPrId){const t=db.collection("proc_pr").doc(currentPrId).get();e=t.exists?{id:t.id,...t.data()}:collectPrPayload()}else e=collectPrPayload();
+    const clinicName = window.OMS_CONFIG?.clinicName || "Clinic";
+    const addressInfo = window.OMS_CONFIG?.address || "";
+    const t=(e.items||[]).map((e=>`\n <tr>\n <td>${e.desc}</td>\n <td class="p-center">${e.qty}</td>\n <td class="p-center">${e.unit}</td>\n <td class="p-center">${Number(e.unitPrice||0).toFixed(2)}</td>\n <td class="p-center">${Number((e.qty||0)*(e.unitPrice||0)).toFixed(2)}</td>\n </tr>\n `)).join("");
+    openPrintWindow(`\n <div class="p-wrap">\n <h2 class="p-h">${clinicName}</h2>\n <div class="p-meta">Purchase Requisition • ${e.prNo||""} • ${e.date||""}</div>\n <hr>\n <div><b>Supplier:</b> ${e.supplier||""}</div>\n <div><b>Quotation No.:</b> ${e.quotation||""}</div>\n <div><b>Requested By:</b> ${e.requestedBy||""} • <b>Dept:</b> ${e.dept||""}</div>\n <div><b>Status:</b> ${e.status||""}</div>\n <div class="p-sec">Items</div>\n <table class="p-table">\n <thead>\n <tr>\n <th>Description</th><th class="p-center">Qty</th><th class="p-center">Unit</th><th class="p-center">Unit Price</th><th class="p-center">Line Total</th>\n </tr>\n </thead>\n <tbody>${t}</tbody>\n </table>\n <div style="margin-top:8px"><b>Total:</b> ${money(e.total||0)}</div>\n <p class="p-meta">${e.remarks||""}</p>\n </div>\n `,"Purchase Requisition")
+}
+
+function recalcPo(){const e=[...document.querySelectorAll("#tblPoItems tbody tr")];let t=0;e.forEach((e=>{const r=Number(e.querySelector('[data-f="qty"]').value||0)*Number(e.querySelector('[data-f="unitPrice"]').value||0);e.querySelector('[data-f="lineTotal"]').textContent=money(r),t+=r})),el("poTotal").textContent=money(t)}function addPoItemRow(e){e=e||{desc:"",qty:1,unit:"",unitPrice:0};const t=document.createElement("tr");t.innerHTML=`\n <td><input data-f="desc" placeholder="Description" value="${e.desc||""}"/></td>\n <td class="center"><input data-f="qty" type="number" min="0" step="1" value="${e.qty||1}"/></td>\n <td class="center"><input data-f="unit" placeholder="pc, box, set" value="${e.unit||""}"/></td>\n <td class="center"><input data-f="unitPrice" type="number" min="0" step="0.01" value="${e.unitPrice||0}"/></td>\n <td class="center"><span data-f="lineTotal">₱0.00</span></td>\n <td><button class="btn red no-print" data-act="del">Delete</button></td>\n `,document.querySelector("#tblPoItems tbody").appendChild(t),t.addEventListener("input",recalcPo);const r=t.querySelector('[data-act="del"]');r&&(r.onclick=()=>{t.remove(),recalcPo()}),recalcPo()}function collectPoPayload(){const e=[...document.querySelectorAll("#tblPoItems tbody tr")].map((e=>({desc:e.querySelector('[data-f="desc"]').value.trim(),qty:Number(e.querySelector('[data-f="qty"]').value||0),unit:e.querySelector('[data-f="unit"]').value.trim(),unitPrice:Number(e.querySelector('[data-f="unitPrice"]').value||0)}))).filter((e=>e.desc)),t=e.reduce(((e,t)=>e+t.qty*t.unitPrice),0);return{poNo:el("poNo").value.trim()||null,date:el("poDate").value||today(),supplier:el("poSupplier").value.trim(),prId:el("poPrRef").value||"",quotation:el("poQuotation").value.trim(),terms:el("poTerms").value.trim(),deliveryDate:el("poDeliveryDate").value||"",deliveryLoc:el("poDeliveryLoc").value.trim(),particulars:el("poParticulars").value.trim(),approvals:{preparedBy:el("poPreparedBy").value.trim(),checkedBy:el("poCheckedBy").value.trim(),approvedBy:el("poApprovedBy").value.trim()},items:e,total:t,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}}function setPoForm(e){currentPoId=e.id,el("poNo").value=e.poNo||"",el("poDate").value=e.date||today(),el("poSupplier").value=e.supplier||"",el("poPrRef").value=e.prId||"",el("poQuotation").value=e.quotation||"",el("poTerms").value=e.terms||"",el("poDeliveryDate").value=e.deliveryDate||"",el("poDeliveryLoc").value=e.deliveryLoc||"",el("poParticulars").value=e.particulars||"",el("poPreparedBy").value=e.approvals?.preparedBy||"",el("poCheckedBy").value=e.approvals?.checkedBy||"",el("poApprovedBy").value=e.approvals?.approvedBy||"";document.querySelector("#tblPoItems tbody").innerHTML="",(e.items||[]).forEach(addPoItemRow),e.items&&e.items.length||addPoItemRow(),el("poTotal").textContent=money(e.total||0)}function newPoForm(){currentPoId=null,el("poNo").value="",el("poDate").value=today(),el("poSupplier").value="",el("poPrRef").value="",el("poQuotation").value="",el("poTerms").value="",el("poDeliveryDate").value="",el("poDeliveryLoc").value="",el("poParticulars").value="",el("poPreparedBy").value="",el("poCheckedBy").value="",el("poApprovedBy").value="";document.querySelector("#tblPoItems tbody").innerHTML="",addPoItemRow(),recalcPo()}async function savePo(){const e=collectPoPayload(),t=db.collection("proc_po");if(currentPoId)await t.doc(currentPoId).set(e,{merge:!0});else{e.createdAt=firebase.firestore.FieldValue.serverTimestamp();const r=await t.add(e);if(currentPoId=r.id,!e.poNo){const t="PO-"+idSuffix(r.id);await r.update({poNo:t}),e.poNo=t,el("poNo").value=t}}return e.prId&&(await db.collection("proc_pr").doc(e.prId).set({status:"ORDERED"},{merge:!0}),await refreshPrHistory(),await refreshPoPrDropdown()),await refreshPoHistory(),await refreshPoDropdownForGrn(),alert("Purchase Order saved."),e}async function deletePo(){currentPoId?confirm("Delete this Purchase Order?")&&(await db.collection("proc_po").doc(currentPoId).delete(),currentPoId=null,await refreshPoHistory(),await refreshPoDropdownForGrn(),newPoForm(),alert("Purchase Order deleted.")):alert("No PO selected.")}async function refreshPoHistory(){const e=await db.collection("proc_po").orderBy("date","desc").get(),t=el("tblPoHistory").querySelector("tbody");t.innerHTML="",el("poCount").textContent=e.size,e.forEach((e=>{const r=e.data(),o=document.createElement("tr");o.innerHTML=`\n <td>${r.date||""}</td>\n <td>${r.poNo||""}</td>\n <td>${r.supplier||""}</td>\n <td>${r.prId||""}</td>\n <td class="right">${money(r.total||0)}</td>\n <td>${r.terms||""}</td>\n <td>${r.deliveryDate||""}</td>\n <td><button class="btn ghost no-print" data-id="${e.id}">Open</button></td>\n `,o.querySelector("button").onclick=async()=>{const t=await db.collection("proc_po").doc(e.id).get();t.exists&&setPoForm({id:t.id,...t.data()})},t.appendChild(o)}))}async function exportPoCsv(){const e=await db.collection("proc_po").orderBy("date","desc").get(),t=[["Date","PO No","Supplier","Related PR","Quotation","Terms","Delivery Date","Delivery Loc","Total","Prepared By","Checked By","Approved By","Particulars"]];e.forEach((e=>{const r=e.data();t.push([r.date||"",r.poNo||"",r.supplier||"",r.prId||"",r.quotation||"",r.terms||"",r.deliveryDate||"",r.deliveryLoc||"",r.total||0,r.approvals?.preparedBy||"",r.approvals?.checkedBy||"",r.approvals?.approvedBy||"",r.particulars||""])})),exportCsv(t,"purchase_orders.csv")}
+
+// ----------------------------------------------------
+// DYNAMIC PRINT PO
+// ----------------------------------------------------
+function printPo(){
+    let e;if(currentPoId){const t=db.collection("proc_po").doc(currentPoId).get();e=t.exists?{id:t.id,...t.data()}:collectPoPayload()}else e=collectPoPayload();
+    const clinicName = window.OMS_CONFIG?.clinicName || "Clinic";
+    const addressInfo = window.OMS_CONFIG?.address || "";
+    const t=(e.items||[]).map((e=>`\n <tr>\n <td>${e.desc}</td>\n <td class="p-center">${e.qty}</td>\n <td class="p-center">${e.unit}</td>\n <td class="p-center">${Number(e.unitPrice||0).toFixed(2)}</td>\n <td class="p-center">${Number((e.qty||0)*(e.unitPrice||0)).toFixed(2)}</td>\n </tr>\n `)).join("");
+    openPrintWindow(`\n <div class="p-wrap">\n <h2 class="p-h">${clinicName}</h2>\n <div class="p-meta">Purchase Order • ${e.poNo||""} • ${e.date||""}</div>\n <hr>\n <div><b>Supplier:</b> ${e.supplier||""}</div>\n <div><b>Related PR:</b> ${e.prId||""}</div>\n <div><b>Quotation No.:</b> ${e.quotation||""}</div>\n <div><b>Terms:</b> ${e.terms||""}</div>\n <div><b>Delivery Date:</b> ${e.deliveryDate||""} • <b>Ship To:</b> ${e.deliveryLoc||""}</div>\n <div class="p-sec">Items</div>\n <table class="p-table">\n <thead>\n <tr>\n <th>Description</th><th class="p-center">Qty</th><th class="p-center">Unit</th><th class="p-center">Unit Price</th><th class="p-center">Line Total</th>\n </tr>\n </thead>\n <tbody>${t}</tbody>\n </table>\n <div style="margin-top:8px"><b>Total:</b> ${money(e.total||0)}</div>\n <div class="p-sec">Approvals</div>\n <div><b>Prepared By:</b> ${e.approvals?.preparedBy||""}</div>\n <div><b>Checked By:</b> ${e.approvals?.checkedBy||""}</div>\n <div><b>Approved By:</b> ${e.approvals?.approvedBy||""}</div>\n <p class="p-meta">${e.particulars||""}</p>\n </div>\n `,"Purchase Order")
+}
+
+async function refreshPoPrDropdown(){const e=el("poPrRef"),t=e.value;e.innerHTML='<option value="">-- Select Approved PR --</option>';(await db.collection("proc_pr").where("status","in",["APPROVED","ORDERED"]).get().catch((async e=>({docs:(await db.collection("proc_pr").get()).docs})))).docs.forEach((t=>{const r=t.data(),o=document.createElement("option");o.value=t.id,o.textContent=(r.prNo||t.id)+" — "+(r.supplier||"")+" ("+money(r.total||0)+")",e.appendChild(o)})),t&&(e.value=t)}async function populatePoFromPr(){const e=el("poPrRef").value;if(!e)return void alert("Select an APPROVED PR first.");const t=await db.collection("proc_pr").doc(e).get();if(!t.exists)return void alert("PR not found.");const r=t.data();el("poSupplier").value=r.supplier||"",el("poQuotation").value=r.quotation||"",el("poParticulars").value=r.remarks||"";document.querySelector("#tblPoItems tbody").innerHTML="",(r.items||[]).forEach((e=>{addPoItemRow({desc:e.desc,qty:e.qty,unit:e.unit,unitPrice:e.unitPrice})})),recalcPo()}function addGrItemRow(e){e=e||{desc:"",qty:1,unit:"",remarks:""};const t=document.createElement("tr");t.innerHTML=`\n <td><input data-f="desc" placeholder="Description" value="${e.desc||""}"/></td>\n <td class="center"><input data-f="qty" type="number" min="0" step="1" value="${e.qty||1}"/></td>\n <td class="center"><input data-f="unit" placeholder="pc, box, set" value="${e.unit||""}"/></td>\n <td><input data-f="remarks" placeholder="Condition, notes" value="${e.remarks||""}"/></td>\n `,document.querySelector("#tblGrItems tbody").appendChild(t)}function collectGrPayload(){const e=[...document.querySelectorAll("#tblGrItems tbody tr")].map((e=>({desc:e.querySelector('[data-f="desc"]').value.trim(),qty:Number(e.querySelector('[data-f="qty"]').value||0),unit:e.querySelector('[data-f="unit"]').value.trim(),remarks:e.querySelector('[data-f="remarks"]').value.trim()}))).filter((e=>e.desc));return{grNo:el("grNo").value.trim()||null,date:el("grDate").value||today(),poId:el("grPoRef").value||"",supplier:el("grSupplier").value.trim(),deliveryNote:el("grDn").value.trim(),receivedBy:el("grReceivedBy").value.trim(),checkedBy:el("grCheckedBy").value.trim(),remarks:el("grRemarks").value.trim(),items:e,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}}function setGrForm(e){currentGrId=e.id,el("grNo").value=e.grNo||"",el("grDate").value=e.date||today(),el("grPoRef").value=e.poId||"",el("grSupplier").value=e.supplier||"",el("grDn").value=e.deliveryNote||"",el("grReceivedBy").value=e.receivedBy||"",el("grCheckedBy").value=e.checkedBy||"",el("grRemarks").value=e.remarks||"";document.querySelector("#tblGrItems tbody").innerHTML="",(e.items||[]).forEach(addGrItemRow),e.items&&e.items.length||addGrItemRow()}function newGrForm(){currentGrId=null,el("grNo").value="",el("grDate").value=today(),el("grPoRef").value="",el("grSupplier").value="",el("grDn").value="",el("grReceivedBy").value="",el("grCheckedBy").value="",el("grRemarks").value="";document.querySelector("#tblGrItems tbody").innerHTML="",addGrItemRow()}async function saveGr(){const e=collectGrPayload(),t=db.collection("proc_grn");if(currentGrId)await t.doc(currentGrId).set(e,{merge:!0});else{e.createdAt=firebase.firestore.FieldValue.serverTimestamp();const r=await t.add(e);if(currentGrId=r.id,!e.grNo){const t="GRN-"+idSuffix(r.id);await r.update({grNo:t}),e.grNo=t,el("grNo").value=t}}return await refreshGrHistory(),alert("Goods Receipt saved."),e}async function deleteGr(){currentGrId?confirm("Delete this Goods Receipt?")&&(await db.collection("proc_grn").doc(currentGrId).delete(),currentGrId=null,await refreshGrHistory(),newGrForm(),alert("Goods Receipt deleted.")):alert("No Goods Receipt selected.")}async function refreshGrHistory(){const e=await db.collection("proc_grn").orderBy("date","desc").get(),t=el("tblGrHistory").querySelector("tbody");t.innerHTML="",el("grCount").textContent=e.size,e.forEach((e=>{const r=e.data(),o=document.createElement("tr");o.innerHTML=`\n <td>${r.date||""}</td>\n <td>${r.grNo||""}</td>\n <td>${r.poId||""}</td>\n <td>${r.supplier||""}</td>\n <td>${r.deliveryNote||""}</td>\n <td><button class="btn ghost no-print" data-id="${e.id}">Open</button></td>\n `,o.querySelector("button").onclick=async()=>{const t=await db.collection("proc_grn").doc(e.id).get();t.exists&&setGrForm({id:t.id,...t.data()})},t.appendChild(o)}))}async function exportGrCsv(){const e=await db.collection("proc_grn").orderBy("date","desc").get(),t=[["Date","GRN No","PO Ref","Supplier","DR No","Received By","Checked By","Remarks"]];e.forEach((e=>{const r=e.data();t.push([r.date||"",r.grNo||"",r.poId||"",r.supplier||"",r.deliveryNote||"",r.receivedBy||"",r.checkedBy||"",r.remarks||""])})),exportCsv(t,"goods_receipts.csv")}
+
+// ----------------------------------------------------
+// DYNAMIC PRINT GR
+// ----------------------------------------------------
+function printGr(){
+    let e;if(currentGrId){const t=db.collection("proc_grn").doc(currentGrId).get();e=t.exists?{id:t.id,...t.data()}:collectGrPayload()}else e=collectGrPayload();
+    const clinicName = window.OMS_CONFIG?.clinicName || "Clinic";
+    const addressInfo = window.OMS_CONFIG?.address || "";
+    const t=(e.items||[]).map((e=>`\n <tr>\n <td>${e.desc}</td>\n <td class="p-center">${e.qty}</td>\n <td class="p-center">${e.unit}</td>\n <td>${e.remarks||""}</td>\n </tr>\n `)).join("");
+    openPrintWindow(`\n <div class="p-wrap">\n <h2 class="p-h">${clinicName}</h2>\n <div class="p-meta">Goods Receipt Note • ${e.grNo||""} • ${e.date||""}</div>\n <hr>\n <div><b>Supplier:</b> ${e.supplier||""}</div>\n <div><b>Related PO:</b> ${e.poId||""}</div>\n <div><b>Delivery Note / DR:</b> ${e.deliveryNote||""}</div>\n <div><b>Received By:</b> ${e.receivedBy||""} • <b>Checked By:</b> ${e.checkedBy||""}</div>\n <div class="p-sec">Received Items</div>\n <table class="p-table">\n <thead>\n <tr>\n <th>Description</th><th class="p-center">Qty</th><th class="p-center">Unit</th><th>Remarks</th>\n </tr>\n </thead>\n <tbody>${t}</tbody>\n </table>\n <p class="p-meta">${e.remarks||""}</p>\n </div>\n `,"Goods Receipt")
+}
+
+async function refreshPoDropdownForGrn(){const e=el("grPoRef"),t=e.value;e.innerHTML='<option value="">-- Select PO --</option>';(await db.collection("proc_po").orderBy("date","desc").get()).forEach((t=>{const r=t.data(),o=document.createElement("option");o.value=t.id,o.textContent=(r.poNo||t.id)+" — "+(r.supplier||""),e.appendChild(o)})),t&&(e.value=t)}
+
+// Modified event listeners
+window.addEventListener("DOMContentLoaded",(async()=>{
+  document.querySelectorAll(".tab").forEach((e=>{e.addEventListener("click",(()=>{document.querySelectorAll(".tab").forEach((e=>e.classList.remove("active"))),e.classList.add("active");const t=e.dataset.view;document.querySelectorAll("#view-pr,#view-po,#view-grn").forEach((e=>e.style.display="none")),el("view-"+t).style.display="block"}))}));
+
+  el("btnPrAddItem").onclick=()=>addPrItemRow();
+  el("btnPrNew").onclick=()=>newPrForm();
+  el("btnPrSave").onclick=()=>savePr();
+
+  // Custom submit button logic for emails
+  el("btnPrSubmit").onclick = async () => {
+      const pr = await savePr("SUBMITTED");
+
+      // Send the email to the contact email listed in config.js (or fallback to admin)
+      const NOTIFY_EMAIL = window.OMS_CONFIG?.contactInfo ? window.OMS_CONFIG.contactInfo.split(' • ')[1] : "admin@leadserve.demo";
+      const sender = currentUser ? currentUser.email : "A staff member";
+
+      try {
+          await db.collection("mail").add({
+              to: NOTIFY_EMAIL,
+              message: {
+                  subject: `Approval Needed: Purchase Requisition ${pr.prNo}`,
+                  text: `Hello,\n\nA new Purchase Requisition (${pr.prNo}) has been submitted by ${sender}.\n\nPlease log in to the Procurement app to review and approve.\n\nThank you.`
+              }
+          });
+          alert("PR Submitted and email notification sent to the approver!");
+      } catch (error) {
+          console.error("Error sending email:", error);
+          alert("PR was submitted, but there was an error sending the notification email.");
+      }
+  };
+
+  el("btnPrApprove").onclick=()=>savePr("APPROVED");
+  el("btnPrDelete").onclick=()=>deletePr();
+  el("btnPrPrint").onclick=()=>printPr();
+  el("btnPrExport").onclick=()=>exportPrCsv();
+  el("btnPoAddItem").onclick=()=>addPoItemRow();
+  el("btnPoNew").onclick=()=>newPoForm();
+  el("btnPoSave").onclick=()=>savePo();
+  el("btnPoDelete").onclick=()=>deletePo();
+  el("btnPoPrint").onclick=()=>printPo();
+  el("btnPoExport").onclick=()=>exportPoCsv();
+  el("btnPoFromPr").onclick=()=>populatePoFromPr();
+  el("poPrRef").onchange=()=>populatePoFromPr();
+  el("btnGrAddItem").onclick=()=>addGrItemRow();
+  el("btnGrNew").onclick=()=>newGrForm();
+  el("btnGrSave").onclick=()=>saveGr();
+  el("btnGrDelete").onclick=()=>deleteGr();
+  el("btnGrPrint").onclick=()=>printGr();
+  el("btnGrExport").onclick=()=>exportGrCsv();
+
+  newPrForm();
+  newPoForm();
+  newGrForm();
+
+  await refreshPrHistory();
+  await refreshPoHistory();
+  await refreshGrHistory();
+  await refreshPoPrDropdown();
+  await refreshPoDropdownForGrn();
+}));
+</script>
+</body>
+</html>

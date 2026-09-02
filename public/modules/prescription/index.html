@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Prescription</title>
+    <link rel="stylesheet" href="../../assets/style.css">
+    <link rel="icon"
+        href="../../assets/logo.png">
+    <script src="../../config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="../../assets/leadserve-firestore.js"></script>
+    <script>
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.OMS_CONFIG.firebase);
+        }
+        var db = firebase.firestore();
+    </script>
+    <script src="../../assets/app.js"></script>
+    <link rel="stylesheet" href="../../assets/style.css">
+    <link rel="icon"
+        href="../../assets/logo.png">
+</head>
+
+<body>
+    <header id="uniformHeader"
+        style="background:linear-gradient(to right,#0a3d62,#1e6091);color:#fff; padding:10px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:12px;"><img
+                src="../../assets/logo.png"
+                alt="LEADSERVE OMS Logo" style="height:50px;">
+            <div>
+                <div style="font-size:20px;font-weight:bold;">LEADSERVE OMS</div>
+                <div style="font-size:13px;line-height:1.4;"> Demo City, Philippines
+Contact details available at the clinic • Attending Physician </div>
+            </div>
+        </div>
+        <div><a href="../../index.html"
+                style="background:#1e90ff;color:#fff;padding:8px 12px; border-radius:6px;text-decoration:none;font-weight:bold;display:flex;align-items:center;gap:6px;">
+                🏠 Home </a></div>
+    </header>
+    <style>
+        @media print {
+            header#uniformHeader {
+                display: none !important;
+            }
+        }
+    </style>
+    <div id="data-panel" class="table-wrap hidden">
+        <table class="datatable" id="data-table"></table>
+    </div>
+    <div class="content">
+        <!DOCTYPE html>
+        <html lang="en">
+
+        <head>
+            <meta charset="UTF-8">
+            <title>LEADSERVE OMS — Prescription (Linked Generic↔Brand)</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                @page {
+                    size: A4;
+                    margin: 14mm 14mm 16mm 14mm;
+                }
+
+                :root {
+                    --brand: #0a3d62;
+                    --ink: #0f172a;
+                    --line: #d9e2ef;
+                    --muted: #556275;
+                }
+
+                * {
+                    box-sizing: border-box
+                }
+
+                body {
+                    font-family: Segoe UI, Roboto, Arial, sans-serif;
+                    background: #f7f9fc;
+                    margin: 0;
+                    color: var(--ink)
+                }
+
+                .wrap {
+                    max-width: 980px;
+                    margin: 20px auto;
+                    padding: 0 16px;
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 16px
+                }
+
+                .card {
+                    background: #fff;
+                    border: 1px solid var(--line);
+                    border-radius: 14px;
+                    box-shadow: 0 6px 24px rgba(16, 24, 40, .06)
+                }
+
+                .header {
+                    background: linear-gradient(180deg, #0a3d62 0%, #115c8d 100%);
+                    color: #fff;
+                    padding: 14px 18px;
+                    border-radius: 14px 14px 0 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px
+                }
+
+                .header img {
+                    width: auto !important;
+                    height: auto !important;
+                    max-width: 56px !important;
+                    max-height: 56px !important;
+                    object-fit: contain !important;
+                    flex: 0 0 auto !important;
+                    display: block !important
+                }
+
+                .header .title {
+                    font-weight: 800;
+                    letter-spacing: .2px
+                }
+
+                .sub {
+                    opacity: .9;
+                    font-size: .95rem
+                }
+
+                .inner {
+                    padding: 18px
+                }
+
+                label {
+                    display: block;
+                    font-size: .9rem;
+                    color: #1f2937;
+                    margin: 8px 0 6px
+                }
+
+                input,
+                select,
+                textarea {
+                    width: 100%;
+                    padding: 10px 12px;
+                    border: 1px solid var(--line);
+                    border-radius: 10px;
+                    font-size: 14px;
+                    background: #fff
+                }
+
+                textarea {
+                    resize: vertical
+                }
+
+                .grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px
+                }
+
+                .controls {
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    margin-top: 14px
+                }
+
+                .btn {
+                    padding: 10px 14px;
+                    border: 1px solid var(--line);
+                    border-radius: 10px;
+                    background: #fff;
+                    cursor: pointer;
+                    font-weight: 600
+                }
+
+                .btn.primary {
+                    background: var(--brand);
+                    color: #fff;
+                    border-color: transparent
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                    border: 1px solid var(--line)
+                }
+
+                th,
+                td {
+                    border-bottom: 1px solid var(--line);
+                    padding: 8px;
+                    text-align: left;
+                    vertical-align: top
+                }
+
+                th {
+                    background: #f3f6fb
+                }
+
+                .muted {
+                    color: #667085;
+                    font-size: .9rem
+                }
+
+                .rx {
+                    font-weight: 800;
+                    color: var(--brand)
+                }
+
+                .print-card {
+                    background: #fff;
+                    border: 1px dashed var(--line);
+                    border-radius: 14px
+                }
+
+                .p-inner {
+                    padding: 18px
+                }
+
+                .p-head {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    gap: 16px;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px
+                }
+
+                .p-head .left {
+                    display: flex;
+                    gap: 10px;
+                    align-items: flex-start
+                }
+
+                .p-head img {
+                    width: auto !important;
+                    height: auto !important;
+                    max-width: 64px !important;
+                    max-height: 64px !important;
+                    object-fit: contain !important;
+                    flex: 0 0 auto !important;
+                    display: block !important
+                }
+
+                .p-clinic {
+                    font-weight: 800;
+                    font-size: 1.15rem
+                }
+
+                .p-meta {
+                    font-size: .92rem
+                }
+
+                .p-block {
+                    margin-top: 12px
+                }
+
+                .p-label {
+                    font-weight: 700
+                }
+
+                .rx-list {
+                    counter-reset: item
+                }
+
+                .rx-item {
+                    margin: 16px 0
+                }
+
+                .rx-top {
+                    display: grid;
+                    grid-template-columns: 1fr 120px;
+                    align-items: start;
+                    gap: 10px
+                }
+
+                .rx-top .name::before {
+                    counter-increment: item;
+                    content: counter(item) ". ";
+                    margin-right: 8px
+                }
+
+                .rx-top .name {
+                    font-size: 1.05rem
+                }
+
+                .rx-top .qty {
+                    text-align: right;
+                    font-weight: 700;
+                    white-space: nowrap
+                }
+
+                .rx-sig {
+                    margin-top: 6px;
+                    padding-left: 28px;
+                    color: #111;
+                    font-size: 1rem
+                }
+
+                .rx-sig .lbl {
+                    font-weight: 700;
+                    margin-right: 6px
+                }
+
+                .p-sign {
+                    margin-top: 24px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    gap: 12px
+                }
+
+                .p-sign .line {
+                    width: 320px;
+                    border-bottom: 1px solid #000;
+                    height: 70px
+                }
+
+                .p-foot {
+                    text-align: center;
+                    font-size: .85rem;
+                    border-top: 1px solid #000;
+                    padding-top: 6px;
+                    margin-top: 8px
+                }
+
+                .qr {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 4px;
+                    font-size: .8rem
+                }
+
+                #uniformHeader img {
+                    width: auto !important;
+                    height: auto !important;
+                    max-width: 50px !important;
+                    max-height: 50px !important;
+                    object-fit: contain !important;
+                    flex: 0 0 auto !important;
+                    display: block !important
+                }
+
+                @media print {
+                    .card.form {
+                        display: none !important
+                    }
+
+                    .wrap {
+                        gap: 0
+                    }
+
+                    .print-card {
+                        border: none
+                    }
+
+                    body {
+                        background: #fff
+                    }
+
+                    .p-inner {
+                        padding: 0
+                    }
+                }
+
+                /* PIN overlay */
+                .pin-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(2, 6, 23, .75);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999
+                }
+
+                .pin-card {
+                    background: #fff;
+                    width: min(480px, 92vw);
+                    border-radius: 14px;
+                    border: 1px solid #e5e7eb;
+                    box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+                    padding: 18px
+                }
+
+                .pin-card h2 {
+                    margin: 0 0 6px;
+                    font-size: 1.25rem
+                }
+
+                .pin-row {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 10px;
+                    margin-top: 10px
+                }
+
+                .pin-row input {
+                    padding: 10px 12px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 10px;
+                    font-size: 1rem
+                }
+
+                .pin-actions {
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 12px;
+                    justify-content: flex-end
+                }
+
+                .pin-actions button {
+                    padding: 10px 14px;
+                    border-radius: 10px;
+                    border: 1px solid #e5e7eb;
+                    background: #0a3d62;
+                    color: #fff;
+                    font-weight: 600;
+                    cursor: pointer
+                }
+
+                .pin-note {
+                    color: #667085;
+                    font-size: .9rem;
+                    margin-top: 8px
+                }
+            </style>
+            <script src="../../config.js"></script>
+            <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+            <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+            <script src="../../assets/leadserve-firestore.js"></script>
+            <script>
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(window.OMS_CONFIG.firebase);
+                }
+                var db = firebase.firestore();
+            </script>
+            <script src="../../assets/app.js"></script>
+        </head>
+
+        <body>
+            <div class="wrap">
+                <div class="card form">
+                    <div class="header"><img
+                            src="../../assets/logo.png"
+                            alt="LEADSERVE OMS Logo">
+                        <div>
+                            <div class="title">LEADSERVE OMS — Prescription</div>
+                            <div class="sub">Demo City, Philippines • License details on file</div>
+                            <div class="sub">Physician: Attending Physician — Cornea & Refractive Surgery
+                            </div>
+                        </div>
+                    </div>
+                    <div class="inner">
+                        <div class="grid">
+                            <div><label>Patient Name</label><input id="f_name" placeholder="Last, First M."></div>
+                            <div><label>Age</label><input id="f_age" type="number" min="0"></div>
+                            <div><label>Sex</label><select id="f_sex">
+                                    <option value=""></option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                    <option>Other</option>
+                                </select></div>
+                            <div><label>Date</label><input id="f_date" type="date"></div>
+                            <div class="grid" style="grid-column:1/3">
+                                <div><label>Address</label><input id="f_addr"></div>
+                            </div>
+                        </div>
+                        <div style="margin-top:12px"><span class="rx">℞</span> Fill up to 5 medicines</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Generic</th>
+                                    <th>Brand</th>
+                                    <th>Dosage</th>
+                                    <th>Frequency</th>
+                                    <th>Qty</th>
+                                    <th>Duration</th>
+                                    <th>Instructions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rows"></tbody>
+                        </table><label style="margin-top:10px">Notes</label><textarea id="f_notes" rows="3"
+                            placeholder="Additional instructions, precautions, follow‑up date…"></textarea>
+                        <div class="controls"><button class="btn" id="btnLock">Lock</button><button class="btn primary"
+                                id="btnPrint">Print / Save PDF</button><button class="btn" id="btnSave">Save
+                                (Cloud)</button><button class="btn" id="btnLoad">Recall Last</button><button class="btn"
+                                id="btnClear">Clear</button><button class="btn" id="btnExport">Export DB (JSON)</button>
+                        </div>
+                        <div class="muted">Preview updates automatically. Saved in the cloud via Firebase Firestore.
+                        </div>
+                    </div>
+                </div>
+                <div class="print-card">
+                    <div class="p-inner" id="preview">
+                        <div class="p-head">
+                            <div class="left"><img
+                                    src="../../assets/logo.png"
+                                    alt="LEADSERVE OMS Logo">
+                                <div>
+                                    <div class="p-clinic">LEADSERVE OMS</div>
+                                    <div>Demo City, Philippines</div>
+                                </div>
+                            </div>
+                            <div class="p-meta" style="text-align:right">
+                                <div><strong>Attending Physician</strong></div>
+                                <div>Cornea & Refractive Surgery</div>
+                                <div>License details on file</div>
+                            </div>
+                        </div>
+                        <div class="p-block">
+                            <div><span class="p-label">Patient:</span><span id="p_name"></span></div>
+                            <div><span class="p-label">Age:</span><span id="p_age"></span> &nbsp;&nbsp; <span
+                                    class="p-label">Sex:</span><span id="p_sex"></span></div>
+                            <div><span class="p-label">Address:</span><span id="p_addr"></span></div>
+                            <div><span class="p-label">Date:</span><span id="p_date"></span></div>
+                        </div>
+                        <div class="p-rx">
+                            <div class="rx-list" id="p_rxlist"></div>
+                        </div>
+                        <div class="p-block">
+                            <div class="p-label">Notes</div>
+                            <div id="p_notes" style="white-space:pre-wrap"></div>
+                        </div>
+                        <div class="p-sign">
+                            <div>
+                                <div class="line"></div>
+                                <div><strong>Attending Physician</strong></div>
+                                <div>Cornea & Refractive Surgery</div>
+                                <div class="muted">computer generated, no signature required</div>
+                            </div>
+                            <div class="qr"><img
+                                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAhIAAAISAQAAAACxRhsSAAAE10lEQVR4nO2dzY3jOBCFX60E+EgDG0CHQmewITUmpM5ACsUBLCAdG5Dw9sDij9remcO4uV7j1cGQafoDCRSKrB9SRvyuzH/8NgIQQwwxxBBDDDHEEEOMyjCXEZjPu3lbfsJ8Ll3OgF3W3P/y4HGIIca/CEkSkSS5DCS5AcCQ2hC5oflA2JD75b9NzzIXMV6fsbp1NDsDiMtuybLOZ+/AH3ZqYgPJ+D5+HGKIcU/Grw3x40RgHTbDOgJYR3C2gQB2I7DD4sfjxyGGGD+TGz1NEjYgfpzTF0NYYMCwAev5e8Yhhhg/lS/7U9StKQLzEwBOYQMQ6j5W+1MxejPm7MwjLgCwjkC8jvlpGWjv1xMRryPsgj25+48fhxhi3JW07jcO0nyGEfg0IHxa2gGkJyA/hWOy9VnmIsbrMvK6vwAABnLC4Et+UlGUH2pIqnSm1n0xujBcT5tdKYCkrK67QKOxHknNmq39qRh9GHCbGLKKcslGNS7V2g5uXovuktwgeypGJ0ZrTxG2Ykp98a/pqaTKMWmxm1zpqRidGE1cypfyFJwCkjpyGbJ2hs2taFFRrftidGJke5qDo9mKFimxUgDw/UEJrEpPxejDKHqaF3UuQHX/Ux/3mTa0vwbtT8XoxmjiUofMFJDVtnj+oRjQ6nRJT8XowkBd3uHBqeI4Ve+JW8qb5k1q/ofWfTH6MLLWsSbvfRvatBUDWotQW/P6LHMR43UZjR/FqTTGGkSlR02zqw+4KisuJUY/xiFvGoqnVGv32VZJVe8JJYMlPRXj+xnZFyq+fUo78WBeS8Tf1RbwlKnsqRh9GMUrAu7VmtZKVF/yS34fgPL7YnRmzG8bcq0pYO8LQF7NUA6f2CWQdlnHpp+b3CebixgvyEj1pxavJ5qXRQ2bzTYQ82XYcttuwDpuQCBSWzng9zxzEeN1GWV/epDIUiVV+y053Z8kaH8qRjfGoQ4lR1JvyvyCu1ruTC2lQEV6KkYXxm29VA6YelkKPHlaVbRW+8ueitGXMdsI/nhjs9AjLruRy252wW52WUeYvW0g0wG/E+3y6HGIIcZ9qfmoLIea6JqFupfalz0Vow+j8aP8qcRKp1rjHw6B1bjUAhXpqRg9GB6XKh9AQLr7xCJ3IwBaXPbRdwTriYbwaWzanmUuYrwu41CHkj9ycR/QnJkqVX+5DkX1p2J0Y+T7pdYRBpxoCAMNGGhAuoDCl/z5r7+NwECL0zZa5J7/+yxzEeN1GaX6CaXIpN4kkbtMId+JWkNSbndlT8XoxyDpyXty2a1ex+uBgHUEyc+c7s+i/L4YfRmzmVVjmW5EK+Wo9t6cRdkNWE9sNfbJ5iLGCzJKPuqmbB/tedOhCV15m+5DEaMfo5yPcoGbTQDtJf3Me9ZQ60+V3xejM6O+76Q1paHdkJq9kbUcNWVVpwePQwwx7otrYZwAYP0zB/sBENiRDOhsTdsI1Z+K0ZvRnuOLX+49x6HWdCqn/LxN+1Mx/jtG5OblU8m3T9qZ6vnT4l/vSLHL941DDDFaubWnh8P5/msJ8QOobpXsqRidGLfv41tqFX8+xD/lwGo+2F+r/qSnYnRklPed+BtM4a825QRf3lP8NL2Ubx3RvlviyeYixgsyjL/u8wuZn2UuYoghhhhiiCGGGGL8/xn/AEco3XEaEM7uAAAAAElFTkSuQmCC"
+                                    alt="Directions QR" style="height:96px; width:96px;">
+                                <div class="muted">Directions</div>
+                                <div class="muted">Security Code: <span id="sec_code">—</span></div>
+                            </div>
+                        </div>
+                        <div class="p-foot"> LEADSERVE OMS • Demo City, Philippines •
+                            License details on file<div class="muted" style="font-size:.8rem">This code is generated
+                                locally. When online, a server-signed QR will be used for verification.</div>
+                            <div id="stamp" class="muted">Printed: </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>const GENERICS = ["", "Moxifloxacin 0.5%", "Levofloxacin 0.5%", "Gatifloxacin 0.5%", "Ofloxacin 0.3%", "Ciprofloxacin 0.3%", "Tobramycin 0.3%", "Gentamicin 0.3%", "Chloramphenicol 0.5%", "Erythromycin ophthalmic", "Azithromycin 1%", "Ganciclovir 0.15% gel", "Acyclovir 3% ointment", "Prednisolone acetate 1%", "Fluorometholone 0.1%", "Loteprednol etabonate 0.5%", "Dexamethasone 0.1%", "Difluprednate 0.05%", "Ketorolac tromethamine 0.5%", "Nepafenac 0.1%", "Bromfenac 0.09%", "Diclofenac sodium 0.1%", "Indomethacin 0.1%", "Olopatadine 0.1%", "Ketotifen 0.025%", "Azelastine 0.05%", "Epinastine 0.05%", "Sodium hyaluronate 0.1%", "Carboxymethylcellulose 0.5%", "Hypromellose 0.5%", "Hydroxypropyl guar 0.3%", "PEG/PG combo", "Atropine sulfate 1%", "Cyclopentolate HCl 1%", "Tropicamide 1%", "Phenylephrine HCl 2.5%", "Homatropine HBr 2%", "Scopolamine 0.25%", "Timolol maleate 0.5%", "Brimonidine tartrate 0.2%", "Dorzolamide 2%", "Brinzolamide 1%", "Latanoprost 0.005%", "Travoprost 0.004%", "Bimatoprost 0.01%", "Netarsudil 0.02%", "Tafluprost 0.0015%", "Pilocarpine 1%", "Dorzolamide/Timolol", "Brinzolamide/Brimonidine", "Brimonidine/Timolol", "Natamycin 5%", "Sodium chloride 5% drops", "Sodium chloride 5% ointment", "Acetazolamide tablets"], GEN2BRANDS = { "Moxifloxacin 0.5%": ["Vigamox", "Moxeza", "Moxifloxacin", "MOXIFLOXACIN (plaxomib)", "MOXIFLOXACIN", "VIGAMOX", "CO-AMOXICLAB"], "Levofloxacin 0.5%": ["Oftaquix", "Levoflox", "OFTAQUIX"], "Gatifloxacin 0.5%": ["Zymar", "Gatiflox", "GATIFLOXACIN"], "Ofloxacin 0.3%": ["Ocuflox", "Floxal", "OFLOXACIN (OFLOBIZ)"], "Ciprofloxacin 0.3%": ["Ciloxan", "Ciprobay", "Ciprocin", "CIPROFLAXACIN"], "Tobramycin 0.3%": ["Tobrex", "Tobramycin", "RAYTOBRAX", "TOBRADEXA OINTMENT", "TOBRAMYCIN OBREX"], "Gentamicin 0.3%": ["Genticyn", "Gentamicin"], "Chloramphenicol 0.5%": ["Chloramphenicol"], "Erythromycin ophthalmic": ["Erythromycin ointment"], "Azithromycin 1%": ["Azasite"], "Ganciclovir 0.15% gel": ["Zirgan"], "Acyclovir 3% ointment": ["Acyclovir ointment"], "Prednisolone acetate 1%": ["Pred Forte", "Pred Mild", "PREDBIZ", "PRED FORTE", "METHYLPRED", "PREDNISONE"], "Fluorometholone 0.1%": ["FML"], "Loteprednol etabonate 0.5%": ["Lotemax"], "Dexamethasone 0.1%": ["Maxidex", "Dexamethasone", "DEXATOBRIN"], "Difluprednate 0.05%": ["Durezol"], "Ketorolac tromethamine 0.5%": ["Acular"], "Nepafenac 0.1%": ["Nevanac"], "Bromfenac 0.09%": ["Bromday", "Bromsite", "Yellox"], "Diclofenac sodium 0.1%": ["Voltaren Ophtha"], "Indomethacin 0.1%": ["Indocollyre"], "Olopatadine 0.1%": ["Patanol", "Pataday", "OLOPATADINE"], "Ketotifen 0.025%": ["Zaditen", "Ketotifen"], "Azelastine 0.05%": ["Optivar"], "Epinastine 0.05%": ["Elestat"], "Sodium hyaluronate 0.1%": ["Hialid", "Hylo-Comod", "Sodium hyaluronate"], "Carboxymethylcellulose 0.5%": ["Refresh", "Celluvisc", "CMC"], "Hypromellose 0.5%": ["Hypotears", "HPMC", "Artificial Tears"], "Hydroxypropyl guar 0.3%": ["Systane"], "PEG/PG combo": ["Systane Ultra", "Systane Complete"], "Atropine sulfate 1%": ["Atropine"], "Cyclopentolate HCl 1%": ["Cyclogyl"], "Tropicamide 1%": ["Mydriacyl"], "Phenylephrine HCl 2.5%": ["Mydfrin"], "Homatropine HBr 2%": ["Homatropine"], "Scopolamine 0.25%": ["Scopolamine"], "Timolol maleate 0.5%": ["Timoptol", "Timolol", "TIMOLOL MALEATE"], "Brimonidine tartrate 0.2%": ["Alphagan"], "Dorzolamide 2%": ["Trusopt"], "Brinzolamide 1%": ["Azopt"], "Latanoprost 0.005%": ["Xalatan"], "Travoprost 0.004%": ["Travatan"], "Bimatoprost 0.01%": ["Lumigan"], "Netarsudil 0.02%": ["Rhopressa"], "Tafluprost 0.0015%": ["Zioptan"], "Pilocarpine 1%": ["Pilocarpine"], "Dorzolamide/Timolol": ["Cosopt", "Azarga", "DORZOLAMIDE TIMOLOL", "AZARGA-BRINZO+TIMO"], "Brinzolamide/Brimonidine": ["Simbrinza"], "Brimonidine/Timolol": ["Combigan"], "Natamycin 5%": ["Natacyn"], "Sodium chloride 5% drops": ["Muro 128 drops", "Sodium chloride 5% drops"], "Sodium chloride 5% ointment": ["Muro 128 ointment", "Sodium chloride 5% ointment"], "Acetazolamide tablets": ["Diamox"] }, BRAND2GEN = { Vigamox: "Moxifloxacin 0.5%", Moxeza: "Moxifloxacin 0.5%", Moxifloxacin: "Moxifloxacin 0.5%", "MOXIFLOXACIN (plaxomib)": "Moxifloxacin 0.5%", MOXIFLOXACIN: "Moxifloxacin 0.5%", VIGAMOX: "Moxifloxacin 0.5%", "CO-AMOXICLAB": "Moxifloxacin 0.5%", Oftaquix: "Levofloxacin 0.5%", Levoflox: "Levofloxacin 0.5%", OFTAQUIX: "Levofloxacin 0.5%", Zymar: "Gatifloxacin 0.5%", Gatiflox: "Gatifloxacin 0.5%", GATIFLOXACIN: "Gatifloxacin 0.5%", Ocuflox: "Ofloxacin 0.3%", Floxal: "Ofloxacin 0.3%", "OFLOXACIN (OFLOBIZ)": "Ofloxacin 0.3%", Ciloxan: "Ciprofloxacin 0.3%", Ciprobay: "Ciprofloxacin 0.3%", Ciprocin: "Ciprofloxacin 0.3%", CIPROFLAXACIN: "Ciprofloxacin 0.3%", Tobrex: "Tobramycin 0.3%", Tobramycin: "Tobramycin 0.3%", RAYTOBRAX: "Tobramycin 0.3%", "TOBRADEXA OINTMENT": "Tobramycin 0.3%", "TOBRAMYCIN OBREX": "Tobramycin 0.3%", Genticyn: "Gentamicin 0.3%", Gentamicin: "Gentamicin 0.3%", Chloramphenicol: "Chloramphenicol 0.5%", "Erythromycin ointment": "Erythromycin ophthalmic", Azasite: "Azithromycin 1%", Zirgan: "Ganciclovir 0.15% gel", "Acyclovir ointment": "Acyclovir 3% ointment", "Pred Forte": "Prednisolone acetate 1%", "Pred Mild": "Prednisolone acetate 1%", PREDBIZ: "Prednisolone acetate 1%", "PRED FORTE": "Prednisolone acetate 1%", METHYLPRED: "Prednisolone acetate 1%", PREDNISONE: "Prednisolone acetate 1%", FML: "Fluorometholone 0.1%", Lotemax: "Loteprednol etabonate 0.5%", Maxidex: "Dexamethasone 0.1%", Dexamethasone: "Dexamethasone 0.1%", DEXATOBRIN: "Dexamethasone 0.1%", Durezol: "Difluprednate 0.05%", Acular: "Ketorolac tromethamine 0.5%", Nevanac: "Nepafenac 0.1%", Bromday: "Bromfenac 0.09%", Bromsite: "Bromfenac 0.09%", Yellox: "Bromfenac 0.09%", "Voltaren Ophtha": "Diclofenac sodium 0.1%", Indocollyre: "Indomethacin 0.1%", Patanol: "Olopatadine 0.1%", Pataday: "Olopatadine 0.1%", OLOPATADINE: "Olopatadine 0.1%", Zaditen: "Ketotifen 0.025%", Ketotifen: "Ketotifen 0.025%", Optivar: "Azelastine 0.05%", Elestat: "Epinastine 0.05%", Hialid: "Sodium hyaluronate 0.1%", "Hylo-Comod": "Sodium hyaluronate 0.1%", "Sodium hyaluronate": "Sodium hyaluronate 0.1%", Refresh: "Carboxymethylcellulose 0.5%", Celluvisc: "Carboxymethylcellulose 0.5%", CMC: "Carboxymethylcellulose 0.5%", Hypotears: "Hypromellose 0.5%", HPMC: "Hypromellose 0.5%", "Artificial Tears": "Hypromellose 0.5%", Systane: "Hydroxypropyl guar 0.3%", "Systane Ultra": "PEG/PG combo", "Systane Complete": "PEG/PG combo", Atropine: "Atropine sulfate 1%", Cyclogyl: "Cyclopentolate HCl 1%", Mydriacyl: "Tropicamide 1%", Mydfrin: "Phenylephrine HCl 2.5%", Homatropine: "Homatropine HBr 2%", Scopolamine: "Scopolamine 0.25%", Timoptol: "Timolol maleate 0.5%", Timolol: "Timolol maleate 0.5%", "TIMOLOL MALEATE": "Timolol maleate 0.5%", Alphagan: "Brimonidine tartrate 0.2%", Trusopt: "Dorzolamide 2%", Azopt: "Brinzolamide 1%", Xalatan: "Latanoprost 0.005%", Travatan: "Travoprost 0.004%", Lumigan: "Bimatoprost 0.01%", Rhopressa: "Netarsudil 0.02%", Zioptan: "Tafluprost 0.0015%", Pilocarpine: "Pilocarpine 1%", Cosopt: "Dorzolamide/Timolol", Azarga: "Dorzolamide/Timolol", "DORZOLAMIDE TIMOLOL": "Dorzolamide/Timolol", "AZARGA-BRINZO+TIMO": "Dorzolamide/Timolol", Simbrinza: "Brinzolamide/Brimonidine", Combigan: "Brimonidine/Timolol", Natacyn: "Natamycin 5%", "Muro 128 drops": "Sodium chloride 5% drops", "Sodium chloride 5% drops": "Sodium chloride 5% drops", "Muro 128 ointment": "Sodium chloride 5% ointment", "Sodium chloride 5% ointment": "Sodium chloride 5% ointment", Diamox: "Acetazolamide tablets" }, DOSAGES = ["", "1 drop", "2 drops", "1 strip (ointment)", "Apply thin film", "Use as directed", "Custom…"], FREQS = ["", "OD (once daily)", "BID (twice daily)", "TID (three times daily)", "QID (four times daily)", "q4h", "HS (at bedtime)", "PRN", "Custom…"], DURS = ["", "3 days", "5 days", "7 days", "10 days", "14 days", "1 month", "Custom…"], INSTR = ["", "Left eye (OS)", "Right eye (OD)", "Both eyes (OU)", "After meals", "Before meals", "With meals", "Cold compress", "Warm compress", "As needed", "Custom…"]; function makeSelect(e) { return "<select>" + e.map((e => `<option>${e}</option>`)).join("") + "</select>" } function setBrandOptions(e, t) { const n = e.value; let o = ["", ...GEN2BRANDS[t] || []]; if (o.includes("Custom…") || o.push("Custom…"), !t) { const e = new Set, t = []; Object.values(GEN2BRANDS).forEach((n => n.forEach((n => { e.has(n) || (e.add(n), t.push(n)) })))), o = ["", ...t] } o.includes("Custom…") || o.push("Custom…"), e.innerHTML = o.map((e => `<option>${e}</option>`)).join(""), o.includes(n) && (e.value = n) } function addRow(e) { const t = document.createElement("tr"); t.innerHTML = `\n <td class="c-generic">${makeSelect(GENERICS.concat(["Custom…"]))}</td>\n <td class="c-brand">\n <div class="sel-wrap">\n <select class="m_brand_sel"></select>\n <input class="m_brand_txt" style="display:none" placeholder="Brand">\n </div>\n </td>\n <td class="c-dose">\n <div class="sel-wrap">\n <select class="m_dose_sel">${DOSAGES.map((e => `<option>${e}</option>`)).join("")}</select>\n <input class="m_dose_txt" style="display:none" placeholder="Dosage">\n </div>\n </td>\n <td class="c-freq">\n <div class="sel-wrap">\n <select class="m_freq_sel">${FREQS.map((e => `<option>${e}</option>`)).join("")}</select>\n <input class="m_freq_txt" style="display:none" placeholder="Frequency">\n </div>\n </td>\n <td><input class="m_qty" type="number" min="1" placeholder=""></td>\n <td class="c-dur">\n <div class="sel-wrap">\n <select class="m_dur_sel">${DURS.map((e => `<option>${e}</option>`)).join("")}</select>\n <input class="m_dur_txt" style="display:none" placeholder="Duration">\n </div>\n </td>\n <td>\n <div class="instr-wrap">\n <select class="m_instr_sel">${INSTR.map((e => `<option>${e}</option>`)).join("")}</select>\n <input class="m_instr_txt" style="display:none" placeholder="Custom instruction">\n </div>\n </td>`, e.appendChild(t); const n = t.querySelector(".c-generic select"), o = t.querySelector(".m_brand_sel"), a = t.querySelector(".m_brand_txt"), l = t.querySelector(".m_dose_sel"), i = t.querySelector(".m_dose_txt"), r = t.querySelector(".m_freq_sel"), s = t.querySelector(".m_freq_txt"), c = t.querySelector(".m_dur_sel"), d = t.querySelector(".m_dur_txt"); function m(e, t) { e.addEventListener("change", (() => { "Custom…" === e.value ? (e.style.display = "none", t.style.display = "block", t.focus()) : "none" === e.style.display && (e.style.display = "", t.style.display = "none", t.value = ""), updatePreview() })), t.addEventListener("input", updatePreview) } m(l, i), a.addEventListener("input", updatePreview), m(r, s), m(c, d), setBrandOptions(o, ""), n.addEventListener("change", (() => { if ("Custom…" === n.value) { n.style.display = "none"; let e = t.querySelector(".c-generic input"); e || (e = document.createElement("input"), e.placeholder = "Generic name", e.className = "m_generic_custom", t.querySelector(".c-generic").appendChild(e)), e.style.display = "block", e.focus(), setBrandOptions(o, "") } else { setBrandOptions(o, n.value); const e = BRAND2GEN[o.value] || ""; e && e !== n.value && (o.value = "") } updatePreview() })), o.addEventListener("change", (() => { if ("Custom…" === o.value) return o.style.display = "none", a.style.display = "block", a.focus(), void updatePreview(); "none" === o.style.display && (o.style.display = "", a.style.display = "none", a.value = ""); const e = BRAND2GEN[o.value] || ""; if (e) { if (Array.from(n.options).some((t => t.textContent === e))) { if ("none" === n.style.display) { const e = t.querySelector(".c-generic input"); e && (e.style.display = "none"), n.style.display = "" } n.value = e } else { n.style.display = "none"; let o = t.querySelector(".c-generic input"); o || (o = document.createElement("input"), o.placeholder = "Generic name", o.className = "m_generic_custom", t.querySelector(".c-generic").appendChild(o)), o.style.display = "block", o.value = e } setBrandOptions(o, e), o.value = o.value } updatePreview() })); const u = t.querySelector(".m_instr_sel"), y = t.querySelector(".m_instr_txt"); u.addEventListener("change", (() => { "Custom…" === u.value && (u.style.display = "none", y.style.display = "block", y.focus()), updatePreview() })), t.querySelectorAll("select,input").forEach((e => e.addEventListener("input", updatePreview))) } function valOrCustom(e) { const t = e.querySelector("select"), n = e.querySelector("input"); return t && "none" !== t.style.display ? t.value || "" : n && "none" !== n.style.display ? n.value || "" : t && t.value || "" } function gather() { const e = []; return document.querySelectorAll("#rows tr").forEach((t => { const n = t.children, o = valOrCustom(n[0]), a = valOrCustom(n[1]), l = valOrCustom(n[2]), i = valOrCustom(n[3]), r = t.querySelector(".m_qty")?.value || "", s = valOrCustom(n[5]), c = t.querySelector(".m_instr_sel"), d = t.querySelector(".m_instr_txt"); let m = ""; c && "none" !== c.style.display ? m = c.value || "" : d && (m = d.value || ""), [o, a, l, i, r, s, m].some((e => String(e).trim().length > 0)) && e.push({ generic: o, brand: a, dose: l, freq: i, qty: r, dur: s, inst: m }) })), e } function updatePreview() { document.getElementById("p_name").textContent = document.getElementById("f_name").value || "", document.getElementById("p_age").textContent = document.getElementById("f_age").value || "", document.getElementById("p_sex").textContent = document.getElementById("f_sex").value || "", document.getElementById("p_addr").textContent = document.getElementById("f_addr").value || "", document.getElementById("p_date").textContent = document.getElementById("f_date").value || ""; const e = document.getElementById("p_rxlist"); e.innerHTML = ""; const t = gather(); t.forEach((t => { if (!(t.generic || t.brand || "").trim()) return; const n = document.createElement("div"); n.className = "rx-item"; const o = (t.generic ? t.generic : "") + (t.brand ? t.generic ? ` (${t.brand})` : t.brand : ""), a = []; t.dose && a.push(t.dose), t.freq && a.push(t.freq), t.inst && a.push(t.inst), t.dur && a.push("for " + t.dur); const l = a.join(", "); n.innerHTML = `\n <div class="rx-top">\n <div class="name">${o || ""}</div>\n <div class="qty">Qty # ${t.qty ? `(${t.qty})` : "( )"}</div>\n </div>\n <div class="rx-sig"><span class="lbl">Sig:</span> ${l}</div>\n `, e.appendChild(n) })), document.getElementById("p_notes").textContent = document.getElementById("f_notes").value || ""; const n = new Date; document.getElementById("stamp").textContent = "Printed: " + n.toLocaleString(); const o = localStorage.getItem("msn_rx_salt") || (() => { const e = Array.from(crypto.getRandomValues(new Uint8Array(16))).map((e => e.toString(16).padStart(2, "0"))).join(""); return localStorage.setItem("msn_rx_salt", e), e })(), a = JSON.stringify({ n: document.getElementById("f_name").value || "", a: document.getElementById("f_age").value || "", s: document.getElementById("f_sex").value || "", d: document.getElementById("f_date").value || "", addr: document.getElementById("f_addr").value || "", items: t }), l = (new TextEncoder).encode(o + "|" + a); crypto.subtle.digest("SHA-256", l).then((e => { const t = Array.from(new Uint8Array(e)).map((e => e.toString(16).padStart(2, "0"))).join(""); document.getElementById("sec_code").textContent = t.slice(0, 12).toUpperCase() })) } const RX_COL = "prescriptions"; async function saveRx(e) { try { const t = firebase.firestore().collection(RX_COL); return (await t.add(e)).id } catch (e) { throw e } } async function getLastRx() { try { const e = await firebase.firestore().collection(RX_COL).orderBy("ts", "desc").limit(1).get(); return e.empty ? null : e.docs[0].data() } catch (e) { throw e } } function clearAll() { document.querySelectorAll("#rows tr").forEach((e => e.remove())); const e = document.getElementById("rows"); for (let t = 0; t < 5; t++)addRow(e);["f_name", "f_age", "f_sex", "f_date", "f_addr", "f_notes"].forEach((e => { const t = document.getElementById(e); t && (t.value = "") })); const t = (new Date).toISOString().split("T")[0]; document.getElementById("f_date").value = t, updatePreview() } !function () { const e = document.getElementById("rows"); for (let t = 0; t < 5; t++)addRow(e); const t = (new Date).toISOString().split("T")[0]; document.getElementById("f_date").value = t, document.addEventListener("input", updatePreview), document.getElementById("btnPrint").addEventListener("click", (() => { updatePreview(), window.print() })), document.getElementById("btnClear").addEventListener("click", clearAll), document.getElementById("btnSave").addEventListener("click", (async () => { const e = { ts: Date.now(), name: document.getElementById("f_name").value || "", age: document.getElementById("f_age").value || "", sex: document.getElementById("f_sex").value || "", date: document.getElementById("f_date").value || "", addr: document.getElementById("f_addr").value || "", notes: document.getElementById("f_notes").value || "", items: gather() }; try { await saveRx(e), alert("Saved to cloud (Firestore).") } catch (e) { alert("Save failed: " + e) } })), document.getElementById("btnExport").addEventListener("click", (async () => { try { const e = (await firebase.firestore().collection(RX_COL).orderBy("ts", "desc").get()).docs.map((e => Object.assign({ __id: e.id }, e.data()))), t = new Blob([JSON.stringify(e, null, 2)], { type: "application/json" }), n = URL.createObjectURL(t), o = document.createElement("a"); o.href = n, o.download = "msn_rx_backup.json", o.click(), setTimeout((() => URL.revokeObjectURL(n)), 1e3) } catch (e) { alert("Export failed: " + e) } })), document.getElementById("btnLoad").addEventListener("click", (async () => { try { const n = await getLastRx(); if (!n) return void alert("No saved prescriptions yet."); document.getElementById("f_name").value = n.name || "", document.getElementById("f_age").value = n.age || "", document.getElementById("f_sex").value = n.sex || "", document.getElementById("f_date").value = n.date || t, document.getElementById("f_addr").value = n.addr || "", document.getElementById("f_notes").value = n.notes || "", document.querySelectorAll("#rows tr").forEach((e => e.remove())); const o = document.getElementById("rows"); for (let a = 0; a < Math.max(5, (n.items || []).length); a++)addRow(o); function e(e, t, n, o) { const a = e.querySelector(t), l = e.querySelector(n); if (!a) return; const i = Array.from(a.options).map((e => e.textContent)); o && !i.includes(o) ? (i.includes("Custom…") && (a.value = "Custom…"), a.style.display = "none", l && (l.style.display = "block", l.value = o)) : (a.style.display = "", l && (l.style.display = "none", l.value = ""), a.value = o || "") } (n.items || []).forEach(((t, n) => { const o = document.querySelectorAll("#rows tr")[n], a = o.children, l = a[0].querySelector("select"), i = a[0].querySelector("input"), r = a[1].querySelector(".m_brand_sel"), s = a[1].querySelector(".m_brand_txt"); if (l) { const e = Array.from(l.options).map((e => e.textContent)); if (t.generic && !e.includes(t.generic)) { if (l.style.display = "none", !i) { const e = document.createElement("input"); e.placeholder = "Generic name", e.className = "m_generic_custom", a[0].appendChild(e) } a[0].querySelector("input").style.display = "block", a[0].querySelector("input").value = t.generic } else l.value = t.generic || "" } setBrandOptions(r, t.generic || ""); const c = Array.from(r.options).map((e => e.textContent)); t.brand && !c.includes(t.brand) ? (r.value = "Custom…", r.style.display = "none", s && (s.style.display = "block", s.value = t.brand)) : (s && (s.style.display = "none", s.value = ""), r.style.display = "", r.value = t.brand || ""), e(a[2], ".m_dose_sel", ".m_dose_txt", t.dose || ""), e(a[3], ".m_freq_sel", ".m_freq_txt", t.freq || ""); const d = o.querySelector(".m_qty"); d && (d.value = t.qty || ""), e(a[5], ".m_dur_sel", ".m_dur_txt", t.dur || ""); const m = o.querySelector(".m_instr_sel"), u = o.querySelector(".m_instr_txt"); t.inst && !INSTR.includes(t.inst) ? (m.style.display = "none", u.style.display = "block", u.value = t.inst) : (m && (m.value = t.inst || ""), u && (u.value = "", m.style.display = "", u.style.display = "none")) })), updatePreview() } catch (l) { alert("Load failed: " + l) } })), updatePreview() }(); const PIN_SALT_KEY = "msn_rx_pin_salt", PIN_HASH_KEY = "msn_rx_pin_hash", UNLOCK_KEY = "msn_rx_unlocked"; function sha256Hex(e) { const t = (new TextEncoder).encode(e); return crypto.subtle.digest("SHA-256", t).then((e => Array.from(new Uint8Array(e)).map((e => e.toString(16).padStart(2, "0"))).join(""))) } function genSalt() { return Array.from(crypto.getRandomValues(new Uint8Array(16))).map((e => e.toString(16).padStart(2, "0"))).join("") } function showOverlay(e) { const t = document.getElementById("pinOverlay"), n = document.getElementById("pinSetup"), o = document.getElementById("pinLogin"), a = document.getElementById("pinTitle"), l = document.getElementById("pinModeNote"); "setup" === e ? (a.textContent = "Set Doctor PIN", l.textContent = "This PIN will be saved only in this browser. Use 4–12 digits.", n.style.display = "", o.style.display = "none") : (a.textContent = "Unlock Prescription", l.textContent = "Enter doctor’s PIN to continue.", n.style.display = "none", o.style.display = ""), t.style.display = "flex" } function hideOverlay() { document.getElementById("pinOverlay").style.display = "none" } async function ensureUnlocked() { if ("1" === sessionStorage.getItem(UNLOCK_KEY)) return !0; const e = localStorage.getItem(PIN_SALT_KEY), t = localStorage.getItem(PIN_HASH_KEY); return showOverlay(e && t ? "login" : "setup"), !1 } async function handlePinSubmit() { const e = localStorage.getItem(PIN_SALT_KEY), t = localStorage.getItem(PIN_HASH_KEY); if (e && t) { const n = (document.getElementById("pinInput").value || "").trim(); await sha256Hex(e + "|" + n) === t ? (sessionStorage.setItem(UNLOCK_KEY, "1"), hideOverlay()) : alert("Incorrect PIN.") } else { const e = (document.getElementById("pinNew").value || "").trim(), t = (document.getElementById("pinConfirm").value || "").trim(); if (e.length < 4 || e.length > 12 || !/^\d{4,12}$/.test(e)) return void alert("PIN must be 4–12 digits."); if (e !== t) return void alert("PINs do not match."); const n = genSalt(), o = await sha256Hex(n + "|" + e); localStorage.setItem(PIN_SALT_KEY, n), localStorage.setItem(PIN_HASH_KEY, o), sessionStorage.setItem(UNLOCK_KEY, "1"), hideOverlay() } } document.getElementById("pinSubmit").addEventListener("click", handlePinSubmit), document.getElementById("btnLock").addEventListener("click", (() => { sessionStorage.removeItem(UNLOCK_KEY), showOverlay("login") })); const gated = ["btnPrint", "btnSave", "btnLoad", "btnClear", "btnExport"]; gated.forEach((e => { const t = document.getElementById(e); t && t.addEventListener("click", (async e => { "1" !== sessionStorage.getItem(UNLOCK_KEY) && (e.preventDefault(), e.stopPropagation(), await ensureUnlocked()) }), !0) })), window.addEventListener("load", ensureUnlocked);</script>
+            <script>!function () { const t = "prescriptions", e = document.getElementById("data-panel"), n = document.getElementById("data-table"), o = document.getElementById("act-save"), c = document.getElementById("act-list"), a = document.getElementById("act-export"), l = document.getElementById("act-edit-toggle"), r = document.getElementById("act-save-edits"); let d = []; async function i() { const e = await fetchCollection(t); if (d = e, !n) return; const o = Array.from(e.reduce(((t, e) => (Object.keys(e).forEach((e => t.add(e))), t)), new Set(["__id"]))); n.innerHTML = "<thead><tr>" + o.map((t => `<th>${t}</th>`)).join("") + "<th>Actions</th></tr></thead>"; const c = document.createElement("tbody"); e.forEach(((e, n) => { const a = document.createElement("tr"); o.forEach((t => { const n = document.createElement("td"); n.textContent = void 0 === e[t] ? "" : e[t], a.appendChild(n) })); const l = document.createElement("td"); l.className = "actions-cell"; const r = document.createElement("button"); r.className = "btn danger", r.textContent = "Delete", r.onclick = async () => { await deleteDoc(t, e.__id), i() }, l.appendChild(r), a.appendChild(l), c.appendChild(a) })), n.appendChild(c) } o && (o.onclick = async () => { const e = getAllFieldValues(document), n = await saveToCollection(t, e); alert("Saved to " + t + " (" + n._provider + ").") }), c && (c.onclick = async () => { e.classList.toggle("hidden"), e.classList.contains("hidden") || i() }), a && (a.onclick = () => { if (!d.length) return alert("Nothing to export yet. Click List first."); downloadCSV(t + ".csv", d) }), l && (l.onclick = () => { const t = document.querySelector("table"); if (!t) return alert("No table found."); const e = "true" !== t.getAttribute("data-editable"); t.setAttribute("data-editable", e ? "true" : "false"), t.querySelectorAll("td").forEach((t => { t.contentEditable = e })) }), r && (r.onclick = () => { const e = document.querySelector("table"); if (!e) return alert("No table found."); const n = [], o = Array.from(e.querySelectorAll("thead th")).map((t => t.textContent.trim())); e.querySelectorAll("tbody tr").forEach((t => { const e = {}; Array.from(t.children).forEach(((t, n) => { n < o.length && (e[o[n]] = t.textContent.trim()) })), n.push(e) })), localStorage.setItem(t + "_snapshot", JSON.stringify(n)), alert("Edits saved locally (snapshot). To persist to Firestore, we can wire per-row saves next.") }) }();</script>
+            <footer
+                style="background:linear-gradient(180deg,#0a3d62,#115c8d);color:white;text-align:center;padding:10px;margin-top:20px;font-size:.85rem">
+                LEADSERVE OMS • Demo City, Philippines •
+                Contact:  Advanced eye care for everyone </footer>
+        </body>
+
+        </html>
+    </div>
+    <script>!function () { const t = "prescriptions", e = document.getElementById("data-panel"), n = document.getElementById("data-table"), o = document.getElementById("act-save"), c = document.getElementById("act-list"), a = document.getElementById("act-export"), l = document.getElementById("act-edit-toggle"), r = document.getElementById("act-save-edits"); let d = []; async function i() { const e = await fetchCollection(t); if (d = e, !n) return; const o = Array.from(e.reduce(((t, e) => (Object.keys(e).forEach((e => t.add(e))), t)), new Set(["__id"]))); n.innerHTML = "<thead><tr>" + o.map((t => `<th>${t}</th>`)).join("") + "<th>Actions</th></tr></thead>"; const c = document.createElement("tbody"); e.forEach(((e, n) => { const a = document.createElement("tr"); o.forEach((t => { const n = document.createElement("td"); n.textContent = void 0 === e[t] ? "" : e[t], a.appendChild(n) })); const l = document.createElement("td"); l.className = "actions-cell"; const r = document.createElement("button"); r.className = "btn danger", r.textContent = "Delete", r.onclick = async () => { await deleteDoc(t, e.__id), i() }, l.appendChild(r), a.appendChild(l), c.appendChild(a) })), n.appendChild(c) } o && (o.onclick = async () => { const e = getAllFieldValues(document), n = await saveToCollection(t, e); alert("Saved to " + t + " (" + n._provider + ").") }), c && (c.onclick = async () => { e.classList.toggle("hidden"), e.classList.contains("hidden") || i() }), a && (a.onclick = () => { if (!d.length) return alert("Nothing to export yet. Click List first."); downloadCSV(t + ".csv", d) }), l && (l.onclick = () => { const t = document.querySelector("table"); if (!t) return alert("No table found."); const e = "true" !== t.getAttribute("data-editable"); t.setAttribute("data-editable", e ? "true" : "false"), t.querySelectorAll("td").forEach((t => { t.contentEditable = e })) }), r && (r.onclick = () => { const e = document.querySelector("table"); if (!e) return alert("No table found."); const n = [], o = Array.from(e.querySelectorAll("thead th")).map((t => t.textContent.trim())); e.querySelectorAll("tbody tr").forEach((t => { const e = {}; Array.from(t.children).forEach(((t, n) => { n < o.length && (e[o[n]] = t.textContent.trim()) })), n.push(e) })), localStorage.setItem(t + "_snapshot", JSON.stringify(n)), alert("Edits saved locally (snapshot). To persist to Firestore, we can wire per-row saves next.") }) }();</script>
+</body>
+
+</html>

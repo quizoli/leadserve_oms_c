@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>LEADSERVE OMS - Registration / OPD Form</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="../../assets/logo.png">
+    <link rel="stylesheet" href="../../assets/style.css">
+
+    <style>
+        @page { size: A4; margin: 14mm 14mm 16mm 14mm; }
+        :root{ --brand:#0a3d62; --ink:#0f172a; --line:#e5e7eb; --muted:#667085; }
+        *{box-sizing:border-box}
+        body{font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Arial; background:#f7f9fc; color:var(--ink); margin:0}
+
+        .wrap{max-width:950px; margin:18px auto; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 6px 24px rgba(16,24,40,.06)}
+
+        /* Form Sections */
+        .section{padding:14px 18px; border-top:1px solid var(--line)}
+        h3{margin:0 0 8px 0; font-size:1rem; color:#0a3d62}
+        label{display:block; font-size:.9rem; color:#1f2937; margin:6px 0 4px}
+        input, select, textarea{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:10px; font-size:14px; background:#fff}
+        textarea{resize:vertical}
+        .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+        .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+        .row{display:flex; gap:8px; flex-wrap:wrap}
+
+        /* Buttons */
+        .btn{padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:#fff; cursor:pointer; font-weight:700}
+        .btn.primary{background:#0a3d62; color:#fff; border-color:transparent}
+        .btn.danger{background:#fff; color:#ef4444; border-color:#ef4444}
+        .muted{color:#667085; font-size:.9rem}
+
+        /* Tables */
+        table{ border-collapse: collapse; width:100%; margin-top:6px; }
+        th, td{ border:1px solid #e5e7eb; padding:6px; vertical-align:top; font-size:.92rem }
+        th{ background:#f3f6fb }
+        .controls{display:flex; gap:8px; padding:12px 18px; justify-content:flex-end}
+        .hidden { display: none !important; }
+
+        @media print {
+            header#uniformHeader, .controls, .muted-ui, .noprint { display:none !important }
+            body{background:#fff}
+            .wrap{box-shadow:none; border:none; margin:0;}
+        }
+    </style>
+
+    <script src="../../config.js"></script>
+    <script src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../assets/leadserve-firestore.js"></script>
+
+    <script src="../../assets/app.js"></script>
+    <script defer src="../../assets/header.js"></script>
+
+    <script>
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.OMS_CONFIG.firebase);
+        }
+        const db = firebase.firestore();
+    </script>
+</head>
+<body>
+
+    <msn-header></msn-header>
+
+    <div id="data-panel" class="table-wrap hidden" style="padding:16px;">
+        <table class="datatable" id="data-table"></table>
+    </div>
+
+    <div class="wrap">
+        <div class="section">
+            <h3>Patient Demographics</h3>
+            <div class="grid3">
+                <div><label>Last Name</label><input id="p_lname"></div>
+                <div><label>First Name</label><input id="p_fname"></div>
+                <div><label>Middle Name</label><input id="p_mname"></div>
+            </div>
+            <div class="grid3" style="margin-top:6px">
+                <div><label>Age</label><input id="p_age" type="number" min="0"></div>
+                <div><label>Sex</label>
+                    <select id="p_sex">
+                        <option value=""></option>
+                        <option>Male</option>
+                        <option>Female</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div><label>Civil Status</label><input id="p_status"></div>
+            </div>
+            <div class="grid3" style="margin-top:6px">
+                <div><label>Address (Barangay)</label><input id="p_addr_brgy"></div>
+                <div><label>Municipality</label><input id="p_addr_mun"></div>
+                <div><label>Province</label><input id="p_addr_prov"></div>
+            </div>
+            <div class="grid3" style="margin-top:6px">
+                <div><label>Date of Birth</label><input id="p_dob" type="date"></div>
+                <div><label>Date</label><input id="p_date" type="date"></div>
+                <div><label>Occupation</label><input id="p_job"></div>
+            </div>
+            <div class="grid3" style="margin-top:6px">
+                <div><label>Contact Number</label><input id="p_phone"></div>
+                <div><label>Nationality</label><input id="p_nat"></div>
+                <div><label>Religion</label><input id="p_reli"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>PhilHealth / Senior ID</label><input id="p_phil"></div>
+                <div><label>Allergy</label><input id="p_allergy"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Aspirin Intake</label><input id="p_aspirin"></div>
+                <div><label>Signature</label><input id="p_sig" placeholder="(for consent if needed)"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Chief Complaint & History</h3>
+            <div class="grid2">
+                <div><label>Chief Complaint</label><input id="h_cc"></div>
+                <div><label>History of Present Illness</label><input id="h_hpi"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Pertinent Family History</label><textarea id="h_fh" rows="2"></textarea></div>
+                <div><label>Personal / Social History</label><textarea id="h_psh" rows="2"></textarea></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Cigarette Smoking</label><input id="h_smoke"></div>
+                <div><label>Alcohol Intake</label><input id="h_alcohol"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Review of Systems</h3>
+            <table>
+                <thead><tr><th>System</th><th>Notes</th></tr></thead>
+                <tbody id="ros">
+                    <tr><td>General</td><td><input id="ros_general"></td></tr>
+                    <tr><td>HENT</td><td><input id="ros_hent"></td></tr>
+                    <tr><td>Respiratory</td><td><input id="ros_resp"></td></tr>
+                    <tr><td>Cardio‑vascular</td><td><input id="ros_cv"></td></tr>
+                    <tr><td>Gastrointestinal</td><td><input id="ros_gi"></td></tr>
+                    <tr><td>Genitourinary</td><td><input id="ros_gu"></td></tr>
+                    <tr><td>Neuroendocrine</td><td><input id="ros_endo"></td></tr>
+                    <tr><td>Neuro‑muscular</td><td><input id="ros_nm"></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h3>Past Ocular History & Physical Exam</h3>
+            <div class="grid3">
+                <div><label>Past Ocular History</label><textarea id="po_hx" rows="2"></textarea></div>
+                <div><label>IOP OD</label><input id="iop_od"></div>
+                <div><label>IOP OS</label><input id="iop_os"></div>
+            </div>
+            <div class="grid3" style="margin-top:6px">
+                <div><label>General</label><input id="pe_gen"></div>
+                <div><label>BP</label><input id="pe_bp"></div>
+                <div><label>HR / RR / Temp</label><input id="pe_vitals" placeholder="HR / RR / Temp"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Visual Acuity (SC / CC / PH)</h3>
+            <table>
+                <thead><tr><th></th><th>SC</th><th>CC</th><th>PH</th></tr></thead>
+                <tbody>
+                    <tr><th>OD</th><td><input id="va_od_sc"></td><td><input id="va_od_cc"></td><td><input id="va_od_ph"></td></tr>
+                    <tr><th>OS</th><td><input id="va_os_sc"></td><td><input id="va_os_cc"></td><td><input id="va_os_ph"></td></tr>
+                </tbody>
+            </table>
+            <div class="muted" style="margin-top:4px">(NLP – No Light Perception, LP – Light Perception, HM – Hand Movement)</div>
+        </div>
+
+        <div class="section">
+            <h3>Refraction</h3>
+            <div class="grid2">
+                <div><label>FAR — OD</label><input id="ref_far_od"></div>
+                <div><label>FAR — OS</label><input id="ref_far_os"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>NEAR — OD</label><input id="ref_near_od"></div>
+                <div><label>NEAR — OS</label><input id="ref_near_os"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>PD / K1 / K2 — OD</label><input id="ref_k_od" placeholder="PD, K1, K2"></div>
+                <div><label>PD / K1 / K2 — OS</label><input id="ref_k_os" placeholder="PD, K1, K2"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Worn Glass — OD</label><input id="ref_wg_od"></div>
+                <div><label>Worn Glass — OS</label><input id="ref_wg_os"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Motility — OD</label><input id="mot_od"></div>
+                <div><label>Motility — OS</label><input id="mot_os"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Slit Lamp & Other Exams</h3>
+            <div class="grid2">
+                <div><label>Gross Examination — OD</label><textarea id="gross_od" rows="2"></textarea></div>
+                <div><label>Gross Examination — OS</label><textarea id="gross_os" rows="2"></textarea></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Slit Lamp — OD</label><textarea id="slit_od" rows="2"></textarea></div>
+                <div><label>Slit Lamp — OS</label><textarea id="slit_os" rows="2"></textarea></div>
+            </div>
+            <div class="grid3" style="margin-top:6px">
+                <div><label>Tonometry (time)</label><input id="tono_time"></div>
+                <div><label>Gonioscopy — OD</label><input id="gonio_od"></div>
+                <div><label>Gonioscopy — OS</label><input id="gonio_os"></div>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Fundus — OD</label><textarea id="fundus_od" rows="2"></textarea></div>
+                <div><label>Fundus — OS</label><textarea id="fundus_os" rows="2"></textarea></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Diagnosis & Medications</h3>
+            <div>
+                <label>Diagnosis</label>
+                <textarea id="dx" rows="2" placeholder="e.g., Cataract OD/OS, Glaucoma, Dry Eye Syndrome"></textarea>
+            </div>
+            <div class="grid2" style="margin-top:6px">
+                <div><label>Medications / Plan (OD)</label><textarea id="meds_od" rows="3"></textarea></div>
+                <div><label>Medications / Plan (OS)</label><textarea id="meds_os" rows="3"></textarea></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Procedures / Referrals</h3>
+            <textarea id="procedures" rows="3" placeholder="e.g., For Fundus Photo / OCT / FA, YAG/PRP laser, Pterygium excision, Phaco w/ IOL, etc."></textarea>
+        </div>
+
+        <div class="section">
+            <h3>Remarks</h3>
+            <textarea id="remarks" rows="3"></textarea>
+        </div>
+
+        <div class="section">
+            <div class="grid3">
+                <div class="brand">
+                    <div><strong class="meta">Physician: Attending Physician</strong></div>
+                    <div class="meta">Attending Physician</div>
+                </div>
+                <div></div>
+                <div style="text-align:right"><span class="muted">Computer generated, no signature required</span></div>
+            </div>
+        </div>
+
+        <div class="controls muted-ui">
+            <button class="btn" id="btnNew">New Visit</button>
+            <button class="btn" id="btnSave">Save (Cloud)</button>
+            <button class="btn" id="btnRecall">Recall Last</button>
+            <button class="btn" id="btnExport">Export JSON</button>
+            <button class="btn" id="btnList">List All</button>
+            <button class="btn primary" id="btnPrint">Print</button>
+        </div>
+    </div>
+
+    <div id="listPanel" class="wrap section muted-ui" style="margin-top:10px; display:none;">
+        <h3>Saved Visits (Cloud)</h3>
+        <p class="muted">Records listed below are loaded from Firebase Firestore collection <code>visits</code>.</p>
+        <div class="row" style="margin:10px 0;">
+            <input id="visitListPatientFilter" placeholder="Filter by patient name..." style="max-width:360px;">
+            <span id="visitListCount" class="muted"></span>
+        </div>
+        <div class="table-wrap" style="max-height:260px; overflow:auto;">
+            <table id="tblVisitsList" class="datatable">
+                <thead>
+                    <tr><th>Date</th><th>Patient</th><th>Age</th><th>Sex</th><th>Summary</th><th>Actions</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer class="brand noprint" style="background:linear-gradient(180deg,#0a3d62,#115c8d);color:white;text-align:center;padding:10px;margin-top:20px;font-size:.85rem">
+        LEADSERVE OMS • Demo City, Philippines • Contact: Contact details available at the clinic
+    </footer>
+
+    <script>
+        const DB_NAME="msn_opd_local",STORE="visits";
+        function openDB(){return new Promise(((e,t)=>{const n=indexedDB.open(DB_NAME,1);n.onupgradeneeded=e=>{const t=e.target.result;t.objectStoreNames.contains(STORE)||t.createObjectStore(STORE,{keyPath:"id",autoIncrement:!0})},n.onsuccess=t=>e(t.target.result),n.onerror=e=>t(e.target.error)}))}
+        async function saveVisit(e){const t=(await openDB()).transaction(STORE,"readwrite");return t.objectStore(STORE).add(e),new Promise(((e,n)=>{t.oncomplete=()=>e(!0),t.onerror=()=>n(t.error)}))}
+        async function getLastVisit(){const e=(await openDB()).transaction(STORE,"readonly").objectStore(STORE);return new Promise(((t,n)=>{const o=e.getAll();o.onsuccess=()=>{const e=o.result||[];t(e[e.length-1]||null)},o.onerror=()=>n(o.error)}))}
+        function setTodayDefaults(){const e=(new Date).toISOString().slice(0,10);document.getElementById("p_date").value=e}
+        function ids(){return Array.from(document.querySelectorAll("input,textarea,select")).map((e=>e.id)).filter(Boolean)}
+        function gather(){const e={};return ids().forEach((t=>e[t]=document.getElementById(t).value||"")),e}
+        function fill(e){Object.entries(e||{}).forEach((([e,t])=>{const n=document.getElementById(e);n&&(n.value=t)}))}
+        function clearAll(){document.querySelectorAll("input,textarea,select").forEach((e=>{e.value=""})),setTodayDefaults()}
+
+        document.getElementById("btnSave").addEventListener("click",(async()=>{try{await saveVisit(gather()),alert("Saved to cloud (Firestore).")}catch(e){alert("Save failed: "+e)}}));
+        document.getElementById("btnRecall").addEventListener("click",(async()=>{try{const e=await getLastVisit();if(!e)return alert("No saved visits yet.");clearAll(),fill(e)}catch(e){alert("Recall failed: "+e)}}));
+        document.getElementById("btnNew").addEventListener("click",clearAll);
+        document.getElementById("btnExport").addEventListener("click",(async()=>{const e=(await openDB()).transaction(STORE,"readonly").objectStore(STORE).getAll();e.onsuccess=()=>{const t=e.result||[],n=new Blob([JSON.stringify(t,null,2)],{type:"application/json"}),o=URL.createObjectURL(n),r=document.createElement("a");r.href=o,r.download="msn_opd_backup.json",r.click(),setTimeout((()=>URL.revokeObjectURL(o)),1e3)},e.onerror=()=>alert("Export failed: "+e.error)}));
+        document.getElementById("btnPrint").addEventListener("click",(()=>window.print()));
+        setTodayDefaults();
+    </script>
+    <script>
+        !function(){
+            if(!window.firebase || !firebase.firestore) return;
+            const db = firebase.firestore();
+            const collectionName = "visits";
+            let cachedVisits = [];
+
+            async function fetchVisits(limit = 200) {
+                return (await db.collection(collectionName).orderBy("ts", "desc").limit(limit).get())
+                    .docs.map(doc => Object.assign({ __id: doc.id }, doc.data() || {}));
+            }
+
+            function patientName(record) {
+                const last = record.p_lname || "";
+                const first = record.p_fname || "";
+                const middle = record.p_mname || "";
+                let name = (last || "") + (first ? (last ? ", " : "") + first : "");
+                if (middle) name += " " + middle;
+                return name || "";
+            }
+
+            function summary(record) {
+                const text = (record.meds_od || record.meds_os || record.procedures || record.h_cc || "").toString();
+                return text ? (text.length > 60 ? text.slice(0, 57) + "..." : text) : "";
+            }
+
+            async function renderVisitsList() {
+                const tbody = document.querySelector("#tblVisitsList tbody");
+                const count = document.getElementById("visitListCount");
+                if (!tbody) return;
+
+                const filter = (document.getElementById("visitListPatientFilter")?.value || "").trim().toLowerCase();
+                const rows = cachedVisits.filter(record => !filter || patientName(record).toLowerCase().includes(filter));
+
+                if (count) {
+                    count.textContent = `${rows.length} of ${cachedVisits.length} saved form${cachedVisits.length === 1 ? "" : "s"}`;
+                }
+                if (!cachedVisits.length) {
+                    tbody.innerHTML = "<tr><td colspan='6'>No records found.</td></tr>";
+                    return;
+                }
+                if (!rows.length) {
+                    tbody.innerHTML = "<tr><td colspan='6'>No saved forms match that patient name.</td></tr>";
+                    return;
+                }
+
+                tbody.innerHTML = "";
+                rows.forEach(record => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${record.p_date || ""}</td>
+                        <td>${patientName(record)}</td>
+                        <td>${record.p_age || ""}</td>
+                        <td>${record.p_sex || ""}</td>
+                        <td>${summary(record)}</td>
+                        <td><button class="btn btn-sm" data-id="${record.__id}">Load</button></td>
+                    `;
+                    tr.querySelector("button[data-id]").addEventListener("click", async () => {
+                        try {
+                            const data = (await db.collection(collectionName).doc(record.__id).get()).data() || {};
+                            if (typeof fill === "function") {
+                                if (typeof clearAll === "function") clearAll();
+                                fill(data);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }
+                        } catch (err) {
+                            alert("Failed to load record: " + err);
+                        }
+                    });
+                    tbody.appendChild(tr);
+                });
+            }
+
+            window.saveVisit = async function(record) {
+                try {
+                    record = record || {};
+                    if (!record.ts) record.ts = Date.now();
+                    await db.collection(collectionName).add(record);
+                    return true;
+                } catch (err) {
+                    throw err;
+                }
+            };
+
+            window.getLastVisit = async function() {
+                try {
+                    const snap = await db.collection(collectionName).orderBy("ts", "desc").limit(1).get();
+                    return snap.empty ? null : snap.docs[0].data();
+                } catch (err) {
+                    throw err;
+                }
+            };
+
+            window.addEventListener("load", () => {
+                const exportBtn = document.getElementById("btnExport");
+                if (exportBtn) {
+                    const replacement = exportBtn.cloneNode(true);
+                    exportBtn.parentNode.replaceChild(replacement, exportBtn);
+                    replacement.addEventListener("click", async () => {
+                        try {
+                            const rows = await fetchVisits(1000);
+                            const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.href = url;
+                            link.download = "msn_opd_visits.json";
+                            link.click();
+                            setTimeout(() => URL.revokeObjectURL(url), 1000);
+                        } catch (err) {
+                            alert("Export failed: " + err);
+                        }
+                    });
+                }
+
+                const listBtn = document.getElementById("btnList");
+                const panel = document.getElementById("listPanel");
+                const filterInput = document.getElementById("visitListPatientFilter");
+                filterInput?.addEventListener("input", renderVisitsList);
+
+                listBtn && panel && listBtn.addEventListener("click", async () => {
+                    const shouldOpen = panel.style.display === "none" || !panel.style.display;
+                    panel.style.display = shouldOpen ? "block" : "none";
+                    if (!shouldOpen) return;
+
+                    const tbody = document.querySelector("#tblVisitsList tbody");
+                    if (tbody) tbody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+                    try {
+                        cachedVisits = await fetchVisits();
+                        await renderVisitsList();
+                    } catch (err) {
+                        if (tbody) tbody.innerHTML = "<tr><td colspan='6'>Error loading records.</td></tr>";
+                    }
+                });
+            });
+        }();
+    </script>
+</body>
+</html>

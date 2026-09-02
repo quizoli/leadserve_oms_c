@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LEADSERVE OMS</title>
+    <link rel="icon" href="assets/leadserve-logo.png">
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="assets/leadserve-firestore.js"></script>
+    <style>
+        :root {
+            --bg: #f6f7f9;
+            --surface: #ffffff;
+            --surface-soft: #f9fafb;
+            --ink: #172033;
+            --ink-2: #3d4658;
+            --muted: #6a7280;
+            --line: #dde2ea;
+            --blue: #075fb8;
+            --blue-2: #0b7bdc;
+            --teal: #0f766e;
+            --gold: #a16207;
+            --red: #b42318;
+            --shadow: 0 18px 48px rgba(21, 32, 51, .10);
+            --radius: 8px;
+        }
+        * { box-sizing: border-box; }
+        html, body { min-height: 100%; }
+        body {
+            margin: 0;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,247,249,.95)),
+                radial-gradient(circle at 20% 0%, rgba(11,123,220,.10), transparent 34%),
+                radial-gradient(circle at 86% 8%, rgba(15,118,110,.08), transparent 30%),
+                var(--bg);
+            color: var(--ink);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(255,255,255,.92);
+            border-bottom: 1px solid rgba(221,226,234,.92);
+            backdrop-filter: blur(14px);
+        }
+        .topbar-inner {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            gap: 12px;
+        }
+        .brand img {
+            width: 54px;
+            height: 54px;
+            object-fit: contain;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 4px;
+        }
+        .brand-title {
+            font-weight: 850;
+            font-size: 18px;
+            letter-spacing: .02em;
+        }
+        .brand-sub {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .shell {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 24px 20px 44px;
+        }
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+        }
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .panel-body { padding: 20px; }
+        .panel-head {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .panel-title {
+            font-size: 16px;
+            font-weight: 800;
+        }
+        .panel-note {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+            margin-top: 4px;
+        }
+        .logo-lockup {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 18px;
+            min-height: 210px;
+        }
+        .logo-lockup img {
+            width: min(100%, 360px);
+            height: auto;
+            display: block;
+        }
+        .metric-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .metric {
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--surface-soft);
+            padding: 12px;
+            min-height: 74px;
+        }
+        .metric-label {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .metric-value {
+            margin-top: 6px;
+            font-size: 20px;
+            font-weight: 850;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 0;
+        }
+        label {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin: 15px 0 6px;
+        }
+        input {
+            width: 100%;
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: 8px;
+            padding: 11px 12px;
+            font-size: 15px;
+            color: var(--ink);
+        }
+        input:focus {
+            border-color: rgba(7,95,184,.65);
+            outline: 3px solid rgba(7,95,184,.14);
+        }
+        .btn {
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--ink);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+        }
+        .btn.primary {
+            border-color: transparent;
+            background: var(--blue);
+            color: #fff;
+        }
+        .btn.primary:hover { background: #064f98; }
+        .btn.full { width: 100%; }
+        .btn-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .status {
+            min-height: 18px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .status.error { color: var(--red); }
+        .clinic-view {
+            display: grid;
+            gap: 16px;
+        }
+        .section-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .user-chip {
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: var(--ink-2);
+            font-size: 13px;
+            font-weight: 700;
+            max-width: 360px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .clinic-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+        .clinic-card {
+            width: 100%;
+            min-height: 164px;
+            text-align: left;
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 16px;
+            cursor: pointer;
+            display: grid;
+            gap: 10px;
+            align-content: start;
+        }
+        .clinic-card:hover,
+        .clinic-card:focus {
+            outline: none;
+            border-color: rgba(7,95,184,.72);
+            box-shadow: 0 14px 34px rgba(7,95,184,.12);
+            transform: translateY(-1px);
+        }
+        .clinic-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .clinic-name {
+            font-size: 18px;
+            font-weight: 850;
+        }
+        .clinic-meta {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .clinic-badge {
+            border-radius: 999px;
+            background: rgba(7,95,184,.09);
+            color: var(--blue);
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .clinic-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-top: 1px solid var(--line);
+            padding-top: 10px;
+            margin-top: 2px;
+        }
+        .open-label {
+            color: var(--blue);
+            font-size: 13px;
+            font-weight: 850;
+        }
+        .hidden { display: none !important; }
+        @media (max-width: 900px) {
+            .workspace { grid-template-columns: 1fr; }
+            .metric-strip { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 680px) {
+            .topbar-inner { align-items: flex-start; }
+            .brand img { width: 46px; height: 46px; }
+            .section-head { align-items: flex-start; flex-direction: column; }
+            .clinic-grid { grid-template-columns: 1fr; }
+            .top-actions { width: 100%; justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <img src="assets/leadserve-logo.png" alt="LEADSERVE OMS" onerror="this.style.display='none'">
+                <div>
+                    <div class="brand-title">LEADSERVE OMS</div>
+                    <div class="brand-sub">Ophthalmology Management System</div>
+                </div>
+            </div>
+            <div class="top-actions">
+                <button class="btn hidden" id="btnSignOut" type="button">Sign Out</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="shell">
+        <section id="loginView" class="workspace">
+            <div class="panel">
+                <div class="panel-head">
+                    <div>
+                        <div class="panel-title">Account Access</div>
+                        <div class="panel-note">Sign in to open a clinic workspace.</div>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <h1>Sign In</h1>
+                    <label for="email">Email</label>
+                    <input id="email" type="email" autocomplete="username">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" autocomplete="current-password">
+                    <div class="btn-row">
+                        <button class="btn primary full" id="btnLogin" type="button">Continue</button>
+                    </div>
+                    <div class="status" id="loginStatus"></div>
+                </div>
+            </div>
+
+            <aside class="panel">
+                <div class="panel-body">
+                    <div class="logo-lockup">
+                        <img src="assets/leadserve-logo.png" alt="LEADSERVE OMS">
+                    </div>
+                    <div class="metric-strip">
+                        <div class="metric">
+                            <div class="metric-label">Initial Clinics</div>
+                            <div class="metric-value">2</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Data Model</div>
+                            <div class="metric-value">Isolated</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Platform</div>
+                            <div class="metric-value">OMS</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </section>
+
+        <section id="clinicView" class="clinic-view hidden">
+            <div class="section-head">
+                <div>
+                    <h1>Clinic Workspaces</h1>
+                    <div class="panel-note" id="userLine">Select a clinic workspace.</div>
+                </div>
+                <div class="user-chip" id="userChip"></div>
+            </div>
+            <div class="clinic-grid" id="clinicGrid"></div>
+            <div class="status" id="clinicStatus"></div>
+        </section>
+    </main>
+
+    <script>
+        if (!firebase.apps.length) {
+            firebase.initializeApp(window.OMS_CONFIG.firebase);
+        }
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const tenants = window.OMS_TENANTS || {};
+        const tenantIds = Object.keys(tenants);
+
+        const el = (id) => document.getElementById(id);
+        const loginView = el("loginView");
+        const clinicView = el("clinicView");
+        const clinicGrid = el("clinicGrid");
+        const loginStatus = el("loginStatus");
+        const clinicStatus = el("clinicStatus");
+        const btnSignOut = el("btnSignOut");
+
+        function setStatus(node, message, isError) {
+            node.textContent = message || "";
+            node.classList.toggle("error", Boolean(isError));
+        }
+
+        function showLogin() {
+            loginView.classList.remove("hidden");
+            clinicView.classList.add("hidden");
+            btnSignOut.classList.add("hidden");
+            el("userChip").textContent = "";
+        }
+
+        function showClinics(user) {
+            loginView.classList.add("hidden");
+            clinicView.classList.remove("hidden");
+            btnSignOut.classList.remove("hidden");
+            el("userLine").textContent = "Open the clinic workspace for this session.";
+            el("userChip").textContent = user.email || "Signed-in user";
+        }
+
+        function getTenantUrl(tenantId) {
+            const url = new URL("index.html", window.location.href);
+            url.searchParams.set("leadserve", "1");
+            url.searchParams.set("tenant", tenantId);
+            return url.pathname + url.search;
+        }
+
+        async function getMembershipClinicIds(user) {
+            try {
+                const userDoc = await db.collection("users").doc(user.uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data() || {};
+                    const ids = data.clinicIds || data.clinics || data.tenants;
+                    if (Array.isArray(ids) && ids.length) return ids.filter((id) => tenants[id]);
+                }
+            } catch (e) {}
+
+            try {
+                const snap = await db.collection("clinicMemberships").where("uid", "==", user.uid).get();
+                const ids = snap.docs.map((doc) => (doc.data() || {}).clinicId).filter((id) => tenants[id]);
+                if (ids.length) return Array.from(new Set(ids));
+            } catch (e) {}
+
+            return tenantIds;
+        }
+
+        function renderClinics(ids) {
+            clinicGrid.innerHTML = "";
+            ids.forEach((tenantId) => {
+                const clinic = tenants[tenantId];
+                const card = document.createElement("button");
+                card.className = "clinic-card";
+                card.type = "button";
+                card.innerHTML = `
+                    <div class="clinic-top">
+                        <div>
+                            <div class="clinic-name">${clinic.clinicName}</div>
+                            <div class="clinic-meta">${clinic.address || ""}</div>
+                        </div>
+                        <span class="clinic-badge">${clinic.clinicShortName || tenantId}</span>
+                    </div>
+                    <div class="clinic-footer">
+                        <span class="clinic-meta">Workspace ID: ${tenantId}</span>
+                        <span class="open-label">Open</span>
+                    </div>
+                `;
+                card.addEventListener("click", () => {
+                    try {
+                        localStorage.setItem("leadserve.activeTenantId", tenantId);
+                    } catch (e) {}
+                    window.location.href = getTenantUrl(tenantId);
+                });
+                clinicGrid.appendChild(card);
+            });
+        }
+
+        async function loadClinics(user) {
+            showClinics(user);
+            setStatus(clinicStatus, "Loading clinic access...", false);
+            const ids = await getMembershipClinicIds(user);
+            renderClinics(ids);
+            setStatus(clinicStatus, ids.length ? "" : "No clinic access is assigned to this account.", !ids.length);
+        }
+
+        el("btnLogin").addEventListener("click", async () => {
+            const email = (el("email").value || "").trim();
+            const password = el("password").value || "";
+            if (!email || !password) return setStatus(loginStatus, "Enter email and password.", true);
+
+            setStatus(loginStatus, "Signing in...", false);
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+                setStatus(loginStatus, "", false);
+            } catch (e) {
+                setStatus(loginStatus, e.message || "Sign in failed.", true);
+            }
+        });
+
+        ["email", "password"].forEach((id) => {
+            el(id).addEventListener("keydown", (event) => {
+                if (event.key === "Enter") el("btnLogin").click();
+            });
+        });
+
+        btnSignOut.addEventListener("click", () => auth.signOut());
+
+        auth.onAuthStateChanged((user) => {
+            if (!user) return showLogin();
+            loadClinics(user);
+        });
+    </script>
+</body>
+</html>

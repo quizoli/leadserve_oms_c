@@ -1,0 +1,278 @@
+// config.js
+// LEADSERVE tenant-aware runtime configuration.
+(function () {
+    // TODO(leadserve): replace with a real dedicated LEADSERVE dev Firebase project.
+    // These are intentionally non-functional placeholders so this shell can NEVER
+    // read or write live clinic data. The demo tenant will not connect until you
+    // create `leadserve-oms-dev` (or similar) and paste its real web-app config here.
+    const DEMO_FIREBASE = {
+        apiKey: "REPLACE_WITH_LEADSERVE_DEV_API_KEY",
+        authDomain: "leadserve-oms-dev.firebaseapp.com",
+        projectId: "leadserve-oms-dev",
+        storageBucket: "leadserve-oms-dev.firebasestorage.app",
+        messagingSenderId: "000000000000",
+        appId: "1:000000000000:web:0000000000000000000000",
+        measurementId: "G-XXXXXXXXXX"
+    };
+
+    const LEADSERVE_FIREBASE = DEMO_FIREBASE;
+
+    // A clinic is a config profile, never a code fork. Add a clinic by adding an
+    // entry here. `clinicType` and `providerMode` drive UI/behavior; `modules`
+    // is the pluggable manifest the landing shell reads to show/hide add-ons.
+    // (NOTE: module visibility here is convenience only — real per-module
+    // entitlement is enforced server-side in Firestore rules. See ROADMAP.)
+    const TENANTS = {
+        demo: {
+            clinicId: "demo",
+            clinicName: "LEADSERVE Demo Clinic",
+            clinicShortName: "LEADSERVE",
+            pageTitle: "LEADSERVE OMS",
+            clinicType: "eye",          // eye | dental | lab | general
+            providerMode: "multi",      // single | multi
+            address: "Demo City, Philippines",
+            contactInfo: "Reliable, customizable clinic management",
+            physicianInfo: "Attending Physician",
+            physicians: ["Attending Physician", "Dr. Demo One", "Dr. Demo Two"],
+            logoPath: "assets/logo.png",
+            firebase: DEMO_FIREBASE,
+            firestore: {
+                // Keeps the clinic's root collections compatible with the source OMS.
+                collectionMode: "legacyRoot"
+            },
+            // Pluggable modules. Core (registration, consultation, charge-slip,
+            // pos, settings) is always on and cannot be disabled.
+            modules: {
+                inventory: true,
+                procurement: true,
+                prescription: true,
+                reports: true,
+                philhealth: false,   // WIP
+                hr: false            // delivered via PMC-HRIS
+            }
+        }
+    };
+
+    const APP_CONFIG = {
+        appName: "LEADSERVE OMS",
+        appLogoPath: "assets/leadserve-logo.png",
+        defaultTenantId: "demo",
+        tenantQueryParam: "tenant",
+        tenantStorageKey: "leadserve.activeTenantId",
+        leadserveQueryParam: "leadserve",
+        tenantPathRoot: "clinics",
+        globalCollections: [
+            "users",
+            "clinics",
+            "clinicMemberships",
+            "oms_users",
+            "tenant_users",
+            "tenantMemberships",
+            "leadserve_audit"
+        ]
+    };
+
+    const params = new URLSearchParams(window.location.search || "");
+    const path = window.location.pathname || "";
+    const onLeadservePage = /\/leadserve(?:\.html|\/|$)/i.test(path);
+    const leadserveRequested = onLeadservePage || params.get(APP_CONFIG.leadserveQueryParam) === "1";
+    const requestedTenant = (params.get(APP_CONFIG.tenantQueryParam) || "").trim().toLowerCase();
+
+    function getStoredTenant() {
+        try {
+            const stored = localStorage.getItem(APP_CONFIG.tenantStorageKey);
+            return TENANTS[stored] ? stored : "";
+        } catch (e) {
+            return "";
+        }
+    }
+
+    function setStoredTenant(tenantId) {
+        try {
+            if (TENANTS[tenantId]) localStorage.setItem(APP_CONFIG.tenantStorageKey, tenantId);
+        } catch (e) {}
+    }
+
+    const tenantId = TENANTS[requestedTenant]
+        ? requestedTenant
+        : leadserveRequested
+            ? (getStoredTenant() || APP_CONFIG.defaultTenantId)
+            : APP_CONFIG.defaultTenantId;
+
+    if (leadserveRequested) setStoredTenant(tenantId);
+
+    const activeTenant = TENANTS[tenantId] || TENANTS[APP_CONFIG.defaultTenantId];
+    const isLeadserveMode = Boolean(leadserveRequested);
+    const appTitle = isLeadserveMode
+        ? `${APP_CONFIG.appName} - ${activeTenant.clinicShortName || activeTenant.clinicName}`
+        : activeTenant.pageTitle;
+
+    const config = {
+        ...activeTenant,
+        appName: APP_CONFIG.appName,
+        appTitle,
+        tenantId,
+        activeTenantId: tenantId,
+        isLeadserveMode,
+        firebase: isLeadserveMode ? LEADSERVE_FIREBASE : activeTenant.firebase,
+        tenants: TENANTS,
+        tenantApp: APP_CONFIG,
+        appLogoPath: APP_CONFIG.appLogoPath,
+        firestore: {
+            ...(activeTenant.firestore || {}),
+            collectionMode: isLeadserveMode ? "tenantPath" : ((activeTenant.firestore || {}).collectionMode || "legacyRoot"),
+            tenantPathRoot: APP_CONFIG.tenantPathRoot
+        },
+        clinicAddress: activeTenant.address,
+        clinicContact: `Contact: ${activeTenant.contactInfo} | Physician: ${activeTenant.physicianInfo}`
+    };
+
+    function landingUrl() {
+        const depth = Math.max(0, window.location.pathname.split("/").length - 2);
+        const prefix = depth > 0 ? "../".repeat(depth) : "";
+        return prefix + "leadserve.html";
+    }
+
+    function tenantAwareUrl(href) {
+        if (!config.isLeadserveMode || !href) return href;
+        if (/^(https?:|mailto:|tel:|#)/i.test(href)) return href;
+
+        const url = new URL(href, window.location.href);
+        if (url.origin !== window.location.origin) return href;
+
+        url.searchParams.set(APP_CONFIG.leadserveQueryParam, "1");
+        url.searchParams.set(APP_CONFIG.tenantQueryParam, config.tenantId);
+        return url.pathname + url.search + url.hash;
+    }
+
+    function decorateTenantLinks(root) {
+        if (!config.isLeadserveMode) return;
+        const scope = root || document;
+
+        scope.querySelectorAll("a[href]").forEach((link) => {
+            const raw = link.getAttribute("href");
+            if (!raw || link.dataset.tenantDecorated === "1") return;
+            link.setAttribute("href", tenantAwareUrl(raw));
+            link.dataset.tenantDecorated = "1";
+        });
+
+        scope.querySelectorAll("iframe[src]").forEach((frame) => {
+            const raw = frame.getAttribute("src");
+            if (!raw || frame.dataset.tenantDecorated === "1") return;
+            frame.setAttribute("src", tenantAwareUrl(raw));
+            frame.dataset.tenantDecorated = "1";
+        });
+    }
+
+    function tenantCollectionPath(collectionPath) {
+        const firestoreConfig = config.firestore || {};
+        const collectionMode = firestoreConfig.collectionMode || "legacyRoot";
+        if (collectionMode !== "tenantPath") return collectionPath;
+        if (!collectionPath || typeof collectionPath !== "string") return collectionPath;
+        if (collectionPath.indexOf("/") !== -1) return collectionPath;
+
+        const globals = new Set(APP_CONFIG.globalCollections.concat(firestoreConfig.globalCollections || []));
+        if (globals.has(collectionPath)) return collectionPath;
+
+        const root = firestoreConfig.tenantPathRoot || APP_CONFIG.tenantPathRoot;
+        return `${root}/${config.tenantId}/${collectionPath}`;
+    }
+
+    function initOMSFirestore(rawDb) {
+        if (!rawDb || typeof rawDb.collection !== "function") return rawDb;
+        if (rawDb.__omsTenantWrapped) {
+            window.db = rawDb;
+            return rawDb;
+        }
+
+        const nativeCollection = rawDb.collection.bind(rawDb);
+        rawDb.collection = function (collectionPath) {
+            return nativeCollection(tenantCollectionPath(collectionPath));
+        };
+        rawDb.__omsTenantWrapped = true;
+        rawDb.__omsTenantId = config.tenantId;
+        rawDb.__omsCollectionPath = tenantCollectionPath;
+        window.db = rawDb;
+        return rawDb;
+    }
+
+    function applyBranding() {
+        if (config.appTitle) document.title = config.appTitle;
+        if (config.isLeadserveMode) {
+            const icon = document.querySelector('link[rel="icon"]');
+            if (icon) icon.href = config.appLogoPath;
+        }
+
+        const brandNames = document.querySelectorAll(".brand .name");
+        brandNames.forEach((el) => {
+            el.textContent = config.isLeadserveMode ? config.appName : config.pageTitle;
+        });
+
+        const metas = document.querySelectorAll(".brand .meta");
+        if (metas.length >= 2) {
+            if (config.isLeadserveMode) {
+                metas[0].textContent = `Active clinic: ${config.clinicName}`;
+                metas[1].innerHTML = `${config.address}<br>${config.contactInfo} &bull; ${config.physicianInfo}`;
+            } else {
+                metas[0].textContent = config.address;
+                metas[1].innerHTML = `${config.contactInfo} &bull; ${config.physicianInfo}`;
+            }
+        }
+
+        const depth = Math.max(0, window.location.pathname.split("/").length - 2);
+        const prefix = depth > 0 ? "../".repeat(depth) : "";
+        const logoPath = config.isLeadserveMode && onLeadservePage ? config.appLogoPath : config.logoPath;
+        document.querySelectorAll('img[alt$="OMS"], img[alt$="OMS Logo"], img[alt="Logo"], img[src$="/assets/logo.png"], img[src="../../assets/logo.png"], img[src="assets/logo.png"]').forEach((img) => {
+            img.src = prefix + logoPath;
+            img.alt = config.clinicName;
+            if (config.isLeadserveMode) {
+                img.onerror = function () {
+                    this.style.display = "none";
+                };
+            }
+        });
+
+        if (config.isLeadserveMode && !onLeadservePage) {
+            document.querySelectorAll(".top-actions").forEach((actions) => {
+                if (actions.querySelector("[data-leadserve-landing]")) return;
+                const link = document.createElement("a");
+                link.className = "btn home";
+                link.href = landingUrl();
+                link.textContent = "Landing";
+                link.title = "Back to LEADSERVE landing";
+                link.dataset.leadserveLanding = "1";
+                link.dataset.tenantDecorated = "1";
+                actions.appendChild(link);
+            });
+        }
+
+        const footer = document.querySelector("footer");
+        if (footer) {
+            footer.innerHTML = config.isLeadserveMode
+                ? `${config.appName} &bull; ${config.clinicName} &bull; ${config.address}`
+                : `${config.clinicName} &bull; ${config.address} &bull; ${config.contactInfo}`;
+        }
+
+        if (config.isLeadserveMode) {
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            const textNodes = [];
+            while (walker.nextNode()) textNodes.push(walker.currentNode);
+            textNodes.forEach((node) => {
+                node.nodeValue = node.nodeValue
+                    .replace(/\b(?:LEADSERVE|LCELC|MSN) OMS\b/g, config.appName);
+            });
+        }
+
+        decorateTenantLinks(document);
+    }
+
+    window.OMS_TENANTS = TENANTS;
+    window.OMS_CONFIG = config;
+    window.OMS_ACTIVE_TENANT = activeTenant;
+    window.withTenantParams = tenantAwareUrl;
+    window.decorateTenantLinks = decorateTenantLinks;
+    window.tenantCollectionPath = tenantCollectionPath;
+    window.initOMSFirestore = initOMSFirestore;
+
+    document.addEventListener("DOMContentLoaded", applyBranding);
+})();

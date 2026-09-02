@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>LEADSERVE OMS - HR Module</title>
+<link rel="icon" href="../../assets/logo.png">
+
+<script src="../../config.js"></script>
+<script src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../assets/leadserve-firestore.js"></script>
+
+<script defer src="../../assets/header.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+    if (!firebase.apps.length) {
+        firebase.initializeApp(window.OMS_CONFIG.firebase);
+    }
+</script>
+
+<style>
+:root{--bg:#f5f5f7;--card:#ffffff;--text:#1d1d1f;--muted:#6e6e73;--line:#e5e5ea;--blue:#0071e3;--blue2:#0a84ff;--green:#16a34a;--orange:#f59e0b;--red:#dc2626;--shadow:0 10px 30px rgba(0,0,0,.08);--radius:18px}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.btn{appearance:none;border:1px solid var(--line);background:rgba(255,255,255,.88);color:var(--text);padding:10px 14px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:0.2s;}.btn:hover{background:#fff; transform:translateY(-1px);}.btn:disabled{opacity:0.5; cursor:not-allowed; transform:none;}
+.btn.primary{border-color:transparent;background:linear-gradient(180deg,var(--blue2),var(--blue));color:#fff}.btn.green{background:var(--green);border-color:transparent;color:#fff}.btn.orange{background:var(--orange);border-color:transparent;color:#fff}.btn.red{background:#fff;border-color:#fecaca;color:var(--red)}.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25)}.top-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.shell{max-width:1280px;margin:0 auto;padding:22px 18px 34px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:6px 0 18px}.hero h1{margin:0;font-size:32px;letter-spacing:-.5px}.hero p{margin:6px 0 0;color:var(--muted)}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:999px}.tab{border:0;background:transparent;color:var(--muted);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:800;cursor:pointer;transition:0.2s;}.tab.active{background:linear-gradient(180deg,var(--blue2),var(--blue));color:#fff}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}.section-title{font-size:18px;font-weight:800;letter-spacing:-.2px}.sub{color:var(--muted);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.kpi{padding:16px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#fff,#fafafa)}.kpi .label{font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:800}.kpi .value{font-size:28px;font-weight:800;margin-top:8px;letter-spacing:-.5px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}.col-12{grid-column:span 12}.col-8{grid-column:span 8}.col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-3{grid-column:span 3}
+.panel{padding:18px}label{display:block;font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;margin:0 0 6px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:#fff;outline:none}textarea{min-height:92px;resize:vertical}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:#fff}table{width:100%;border-collapse:separate;border-spacing:0;min-width:900px}
+thead th{background:rgba(245,245,247,.8);text-align:left;padding:12px 12px;font-size:12px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);position:sticky;top:0}tbody td{padding:12px 12px;border-bottom:1px solid #f0f0f2;font-size:14px;vertical-align:top}tbody tr:hover{background:#fbfbfd}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);font-size:12px;font-weight:700}.badge.ok{background:#ecfdf3;border-color:#bbf7d0;color:#166534}.badge.warn{background:#fff7ed;border-color:#fed7aa;color:#9a3412}.badge.gray{background:#f8fafc;color:#475569}
+.hidden{display:none !important}.empty{padding:18px;text-align:center;color:var(--muted)}footer{margin-top:22px;padding:18px 0 10px;color:var(--muted);text-align:center;font-size:12.5px}.notice{padding:12px 14px;border-radius:14px;border:1px solid #dbeafe;background:#eff6ff;color:#1d4ed8;font-size:13px}.error{padding:12px 14px;border-radius:14px;border:1px solid #fecaca;background:#fef2f2;color:#b91c1c;font-size:13px}
+.num-right{text-align:right;}
+
+/* Payslip Print Styles */
+@media print {
+    body * { visibility: hidden; }
+    .print-area, .print-area * { visibility: visible; }
+    .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+    .payslip { border: 1px dashed #ccc; padding: 20px; margin-bottom: 20px; page-break-inside: avoid; font-family: monospace; font-size:12px;}
+    .payslip-header { text-align: center; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom:10px;}
+    .payslip-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .payslip-section { margin-top: 10px; padding-top: 10px; border-top: 1px dotted #ccc; }
+    .payslip-total { font-weight: bold; font-size: 14px; margin-top: 10px; border-top: 1px solid #000; padding-top: 10px; }
+}
+
+@media (max-width:1024px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.col-8,.col-6,.col-4,.col-3{grid-column:span 12}}
+@media (max-width:768px){.shell{padding:16px 12px 24px}.hero{flex-direction:column;align-items:flex-start}.hero h1{font-size:26px}.tabs{border-radius:18px}.tab{flex:1 1 calc(50% - 8px);text-align:center}.kpis{grid-template-columns:1fr}.toolbar{flex-direction:column}.toolbar .btn{width:100%;justify-content:center}}
+@media (max-width:480px){.tab{flex:1 1 100%}}
+</style>
+</head>
+<body>
+
+<msn-header></msn-header>
+
+<main class="shell">
+<div class="hero"><div><h1>HR & Payroll</h1><p>Employee masterfile, attendance tracking, loans, and payroll processing.</p></div>
+<div class="tabs">
+    <button class="tab active" data-view="employees">Employees</button>
+    <button class="tab" data-view="attendance">Attendance</button>
+    <button class="tab" data-view="loans">Loans / Cash Advance</button>
+    <button class="tab" data-view="payroll">Payroll & Payslips</button>
+    <button class="tab" data-view="settings">Settings</button>
+</div>
+</div>
+<div id="accessMsg" class="error hidden"></div>
+<div id="syncMsg" class="notice">Ready. This module uses Firestore collections per branch.</div>
+
+<section class="card panel" style="margin-top:14px;"><div class="section-head"><div><div class="section-title">HR Snapshot</div><div class="sub" id="snapshotSub">Loading data…</div></div><div class="toolbar"><select id="branchSelect" style="min-width:180px"><option value="main">Main Branch</option><option value="branch2">Branch 2</option><option value="branch3">Branch 3</option></select><button class="btn" id="btnRefreshAll" type="button">Refresh</button></div></div><div class="kpis"><div class="kpi"><div class="label">Active Employees</div><div class="value" id="kpiEmployees">—</div></div><div class="kpi"><div class="label">Present Today</div><div class="value" id="kpiPresent">—</div></div><div class="kpi"><div class="label">Late Today</div><div class="value" id="kpiLate">—</div></div><div class="kpi"><div class="label">Open Loans</div><div class="value" id="kpiLoans">—</div></div></div></section>
+
+<section id="view-employees" class="card panel" style="margin-top:14px;">
+    <div class="section-head">
+        <div><div class="section-title">Employees</div><div class="sub">Branch-ready employee masterfile.</div></div>
+        <div class="toolbar">
+            <label class="btn ghost" style="color:var(--text); border-color:var(--line); cursor:pointer; margin:0;">
+                Import Excel <input type="file" id="fileEmpExcel" accept=".xlsx,.xls,.csv" style="display:none;">
+            </label>
+            <button class="btn" id="btnNewEmployee" type="button">New Employee</button>
+            <button class="btn primary" id="btnSaveEmployee" type="button">Save Employee</button>
+        </div>
+    </div>
+<div class="grid">
+<div class="col-3"><label>Employee ID</label><input id="empId" placeholder="EMP-0001"></div>
+<div class="col-3"><label>First Name</label><input id="empFirstName" placeholder="First name"></div>
+<div class="col-3"><label>Last Name</label><input id="empLastName" placeholder="Last name"></div>
+<div class="col-3"><label>Status</label><select id="empStatus"><option>Active</option><option>Resigned</option><option>On Leave</option><option>Inactive</option></select></div>
+<div class="col-3"><label>Position</label><input id="empPosition" placeholder="Position"></div>
+<div class="col-3"><label>Department</label><input id="empDepartment" placeholder="Department"></div>
+<div class="col-3"><label>Employment Type</label><select id="empEmploymentType"><option>Regular</option><option>Probationary</option><option>Project-based</option><option>Part-time</option></select></div>
+<div class="col-3"><label>Hire Date</label><input id="empHireDate" type="date"></div>
+<div class="col-3"><label>Payroll Type</label><select id="empPayrollType"><option>Monthly</option><option>Daily</option></select></div>
+<div class="col-3"><label>Monthly Rate</label><input id="empMonthlyRate" type="number" step="0.01" placeholder="0.00"></div>
+<div class="col-3"><label>Daily Rate</label><input id="empDailyRate" type="number" step="0.01" placeholder="0.00"></div>
+<div class="col-3"><label>Biometric Enabled</label><select id="empBiometricEnabled"><option value="true">Yes</option><option value="false">No</option></select></div>
+<div class="col-3"><label>SSS No.</label><input id="empSSS" placeholder="SSS number"></div>
+<div class="col-3"><label>PhilHealth No.</label><input id="empPhilhealth" placeholder="PhilHealth number"></div>
+<div class="col-3"><label>Pag-IBIG No.</label><input id="empPagibig" placeholder="Pag-IBIG number"></div>
+<div class="col-3"><label>TIN</label><input id="empTIN" placeholder="TIN"></div>
+<div class="col-3"><label>Contact No.</label><input id="empContact" placeholder="Mobile"></div>
+<div class="col-3"><label>Emergency Contact</label><input id="empEmergency" placeholder="Emergency contact"></div>
+<div class="col-3"><label>Bank / Payout Method</label><input id="empBank" placeholder="Bank / GCash / cash"></div>
+<div class="col-3"><label>Account No.</label><input id="empAccountNo" placeholder="Account no."></div>
+<div class="col-12"><label>Notes</label><textarea id="empNotes" placeholder="Remarks, branch notes, credentials, etc."></textarea></div>
+</div>
+<div class="section-head" style="margin-top:16px;"><div class="section-title">Employee List</div><input id="employeeSearch" placeholder="Search employee..." style="max-width:280px"></div>
+<div class="table-wrap"><table id="employeesTable"><thead><tr><th>Employee ID</th><th>Name</th><th>Position</th><th>Department</th><th>Status</th><th>Payroll Type</th><th>Rate</th><th>Biometric</th><th>Actions</th></tr></thead><tbody></tbody></table></div></section>
+
+<section id="view-attendance" class="card panel hidden" style="margin-top:14px;"><div class="section-head"><div><div class="section-title">Attendance</div><div class="sub">Daily time-in / time-out records prepared for semi-monthly payroll cutoffs.</div></div><div class="toolbar"><button class="btn green" id="btnTimeIn" type="button">Time In</button><button class="btn orange" id="btnTimeOut" type="button">Time Out</button><button class="btn" id="btnSaveAttendance" type="button">Save / Update Record</button><button class="btn" id="btnNewAttendance" type="button">New Record</button></div></div>
+<div class="grid">
+<div class="col-3"><label>Date</label><input id="attDate" type="date"></div>
+<div class="col-3"><label>Employee</label><select id="attEmployee"></select></div>
+<div class="col-3"><label>Time In</label><input id="attTimeIn" type="time"></div>
+<div class="col-3"><label>Time Out</label><input id="attTimeOut" type="time"></div>
+<div class="col-3"><label>Status</label><select id="attStatus"><option>Present</option><option>Late</option><option>Absent</option><option>Leave</option><option>Holiday</option><option>Halfday</option></select></div>
+<div class="col-3"><label>Late Minutes</label><input id="attLateMinutes" type="number" step="1" min="0" placeholder="0"></div>
+<div class="col-3"><label>Undertime Minutes</label><input id="attUndertimeMinutes" type="number" step="1" min="0" placeholder="0"></div>
+<div class="col-3"><label>Source</label><select id="attSource"><option>biometric</option><option>manual</option><option>admin-adjustment</option></select></div>
+<div class="col-12"><label>Remarks</label><textarea id="attRemarks" placeholder="Remarks"></textarea></div>
+</div>
+<div class="section-head" style="margin-top:16px;"><div class="section-title">Attendance Records</div><input id="attendanceSearch" placeholder="Search attendance..." style="max-width:280px"></div>
+<div class="table-wrap"><table id="attendanceTable"><thead><tr><th>Date</th><th>Employee</th><th>Time In</th><th>Time Out</th><th>Status</th><th>Late</th><th>Undertime</th><th>Source</th><th>Actions</th></tr></thead><tbody></tbody></table></div></section>
+
+<section id="view-loans" class="card panel hidden" style="margin-top:14px;"><div class="section-head"><div><div class="section-title">Loans / Cash Advance</div><div class="sub">Prepared for per-cutoff deduction in payroll Phase 2.</div></div><div class="toolbar"><button class="btn primary" id="btnSaveLoan" type="button">Save Loan</button><button class="btn" id="btnNewLoan" type="button">New Loan</button></div></div>
+<div class="grid">
+<div class="col-3"><label>Loan ID</label><input id="loanId" placeholder="LOAN-0001"></div>
+<div class="col-3"><label>Employee</label><select id="loanEmployee"></select></div>
+<div class="col-3"><label>Type</label><select id="loanType"><option>Loan</option><option>Cash Advance</option><option>Salary Advance</option><option>Emergency Loan</option></select></div>
+<div class="col-3"><label>Status</label><select id="loanStatus"><option>Open</option><option>Closed</option><option>Hold</option></select></div>
+<div class="col-3"><label>Release Date</label><input id="loanStartDate" type="date"></div>
+<div class="col-3"><label>Principal</label><input id="loanPrincipal" type="number" step="0.01" placeholder="0.00"></div>
+<div class="col-3"><label>Deduction Per Cutoff</label><input id="loanPerCutoff" type="number" step="0.01" placeholder="0.00"></div>
+<div class="col-3"><label>Balance</label><input id="loanBalance" type="number" step="0.01" placeholder="0.00"></div>
+<div class="col-3"><label>Term Count</label><input id="loanTermCount" type="number" step="1" min="1" placeholder="1"></div>
+<div class="col-9"><label>Remarks</label><textarea id="loanRemarks" placeholder="Remarks"></textarea></div>
+</div>
+<div class="section-head" style="margin-top:16px;"><div class="section-title">Loan Records</div><input id="loanSearch" placeholder="Search loan..." style="max-width:280px"></div>
+<div class="table-wrap"><table id="loansTable"><thead><tr><th>Loan ID</th><th>Employee</th><th>Type</th><th>Principal</th><th>Per Cutoff</th><th>Balance</th><th>Status</th><th>Release Date</th><th>Actions</th></tr></thead><tbody></tbody></table></div></section>
+
+<section id="view-payroll" class="card panel hidden" style="margin-top:14px;">
+    <div class="section-head">
+        <div>
+            <div class="section-title">Payroll Engine</div>
+            <div class="sub">Calculate gross pay, deduct active loans and government mandates, and generate batch payslips.</div>
+        </div>
+    </div>
+
+    <div class="grid" style="background:#f8fafc; padding:16px; border-radius:12px; border:1px solid var(--line);">
+        <div class="col-3">
+            <label>Cutoff Start Date</label>
+            <input id="payStart" type="date">
+        </div>
+        <div class="col-3">
+            <label>Cutoff End Date</label>
+            <input id="payEnd" type="date">
+        </div>
+        <div class="col-3">
+            <label>Gov Mandates (SSS, PHIC, HDMF)</label>
+            <select id="payGov">
+                <option value="none">Do not deduct this cutoff</option>
+                <option value="half" selected>Deduct Half (Standard)</option>
+                <option value="full">Deduct Full</option>
+            </select>
+        </div>
+        <div class="col-3" style="display:flex; align-items:flex-end;">
+            <button class="btn primary" id="btnGeneratePayroll" style="width:100%; justify-content:center;">Generate Payroll Batch</button>
+        </div>
+    </div>
+
+    <div class="table-wrap" style="margin-top:20px;">
+        <table id="payrollTable">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th class="num-right">Basic Pay</th>
+                    <th class="num-right">Lates/UT Ded.</th>
+                    <th class="num-right" style="color:var(--blue2);">Gross Pay</th>
+                    <th class="num-right" style="color:var(--red);">Loan Ded.</th>
+                    <th class="num-right" style="color:var(--red);">Gov Ded.</th>
+                    <th class="num-right" style="color:var(--green);">Net Pay</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="7" class="empty">Select dates and click Generate to build the payroll batch.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="toolbar" style="margin-top:20px; justify-content:flex-end;">
+        <button class="btn ghost" style="color:var(--text); border-color:var(--line);" id="btnPrintPayslips" disabled>Print Payslips</button>
+        <button class="btn green" id="btnSavePayrollBatch" disabled>Save Payroll & Update Loan Balances</button>
+    </div>
+</section>
+
+<section id="view-settings" class="card panel hidden" style="margin-top:14px;"><div class="section-head"><div><div class="section-title">HR Settings</div><div class="sub">Configured for semi-monthly payroll and Philippine government contribution handling.</div></div><div class="toolbar"><button class="btn primary" id="btnSaveSettings" type="button">Save Settings</button></div></div>
+<div class="grid">
+<div class="col-3"><label>Payroll Release 1</label><input id="setPayDate1" value="15"></div>
+<div class="col-3"><label>Payroll Release 2</label><input id="setPayDate2" value="30"></div>
+<div class="col-3"><label>Cutoff End 1</label><input id="setCutoff1" value="10"></div>
+<div class="col-3"><label>Cutoff End 2</label><input id="setCutoff2" value="25"></div>
+<div class="col-3"><label>No Overtime</label><select id="setNoOvertime"><option value="true">Yes</option><option value="false">No</option></select></div>
+<div class="col-3"><label>Holiday Rule</label><select id="setHolidayRule"><option>Philippine government holiday rules</option></select></div>
+<div class="col-3"><label>Require Biometrics</label><select id="setBiometricRequired"><option value="true">Yes</option><option value="false">No</option></select></div>
+<div class="col-3"><label>Default Workdays / Week</label><input id="setWorkdays" type="number" step="1" min="1" max="7" value="6"></div>
+<div class="col-12"><label>Phase 2 Notes</label><textarea id="setNotes">Government deductions to include SSS, PhilHealth, Pag-IBIG, and withholding tax. Payroll cutoffs: 1–10 paid on 15th, 11–25 paid on 30th, remaining days to next cutoff as needed by policy.</textarea></div>
+</div></section>
+</main>
+<footer>LEADSERVE OMS HR • Master Admin Overridden</footer>
+
+<div id="printArea" class="print-area hidden"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const todayISO = () => new Date().toISOString().slice(0,10);
+const nowTime = () => new Date().toTimeString().slice(0,5);
+const db = firebase.firestore();
+const auth = firebase.auth();
+function signedOutRedirectUrl() {
+    const rawUrl = window.OMS_CONFIG && window.OMS_CONFIG.isLeadserveMode
+        ? "../../leadserve.html"
+        : "../../index.html";
+    return window.withTenantParams ? window.withTenantParams(rawUrl) : rawUrl;
+}
+
+let currentUser = null, currentBranch = 'main', currentRole = '', userModules = [], employees = [], attendance = [], loans = [], hrSettings = null;
+let currentPayrollBatch = []; // NEW: Stores generated payroll
+
+function showView(view){
+    document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+    ['employees','attendance','loans','payroll','settings'].forEach(v => {
+        const el = $('view-' + v);
+        if (el) el.classList.toggle('hidden', v !== view);
+    });
+}
+document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+
+function money(v){ return '₱' + Number(v || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function safeLower(v){ return String(v || '').toLowerCase(); }
+function branchRef(){ return db.collection('branches').doc(currentBranch); }
+function employeeRef(id){ return branchRef().collection('hr_employees').doc(id); }
+function attendanceRef(id){ return branchRef().collection('hr_attendance').doc(id); }
+function loanRef(id){ return branchRef().collection('hr_loans').doc(id); }
+function payrollRef(id){ return branchRef().collection('hr_payroll').doc(id); } // NEW
+function settingsRef(){ return branchRef().collection('hr_settings').doc('config'); }
+async function loadUserProfile(uid){ const snap = await db.collection('oms_users').doc(uid).get(); if (!snap.exists) return null; return snap.data() || null; }
+
+// FORCE ACCESS FOR OWNER
+function hasHRAccess(profile){ return true; }
+
+function setAccessDenied(msg){ $('accessMsg').classList.remove('hidden'); $('accessMsg').textContent = msg; document.querySelectorAll('main .card').forEach(card => card.classList.add('hidden')); }
+function employeeName(emp){ return [emp.firstName, emp.lastName].filter(Boolean).join(' ').trim(); }
+function populateEmployeeSelectors(){ const opts = ['<option value="">Select employee</option>'].concat(employees.slice().sort((a,b) => employeeName(a).localeCompare(employeeName(b))).map(emp => `<option value="${emp.employeeId}">${emp.employeeId} — ${employeeName(emp)}</option>`)); $('attEmployee').innerHTML = opts.join(''); $('loanEmployee').innerHTML = opts.join(''); }
+function renderSnapshot(){ const active = employees.filter(e => safeLower(e.status) === 'active').length; const today = todayISO(); const todayRows = attendance.filter(r => r.date === today); const present = todayRows.filter(r => ['present','late','halfday','holiday'].includes(safeLower(r.status))).length; const late = todayRows.filter(r => safeLower(r.status) === 'late' || Number(r.lateMinutes || 0) > 0).length; const openLoans = loans.filter(l => safeLower(l.status) === 'open' && Number(l.balance || 0) > 0).length; $('kpiEmployees').textContent = active; $('kpiPresent').textContent = present; $('kpiLate').textContent = late; $('kpiLoans').textContent = openLoans; $('snapshotSub').textContent = `Branch: ${currentBranch} • ${employees.length} employee record(s) • ${attendance.length} attendance record(s) • ${loans.length} loan record(s)`; }
+
+function renderEmployees(){ const q = safeLower($('employeeSearch').value); const rows = employees.filter(emp => !q || [emp.employeeId, emp.firstName, emp.lastName, emp.position, emp.department].some(v => safeLower(v).includes(q))).sort((a,b) => employeeName(a).localeCompare(employeeName(b))); const tbody = $('employeesTable').querySelector('tbody'); if (!rows.length){ tbody.innerHTML = `<tr><td colspan="9" class="empty">No employee records yet.</td></tr>`; return; } tbody.innerHTML = rows.map(emp => `<tr><td>${emp.employeeId || ''}</td><td><strong>${employeeName(emp) || ''}</strong></td><td>${emp.position || ''}</td><td>${emp.department || ''}</td><td><span class="badge ${safeLower(emp.status)==='active' ? 'ok' : 'warn'}">${emp.status || ''}</span></td><td>${emp.payrollType || ''}</td><td>${emp.payrollType === 'Daily' ? money(emp.dailyRate) : money(emp.monthlyRate)}</td><td>${String(emp.biometricEnabled) === 'true' || emp.biometricEnabled === true ? 'Yes' : 'No'}</td><td><div class="toolbar"><button class="btn" data-edit-employee="${emp.employeeId}">Open</button></div></td></tr>`).join(''); tbody.querySelectorAll('[data-edit-employee]').forEach(btn => btn.onclick = () => loadEmployeeToForm(btn.dataset.editEmployee)); }
+function renderAttendance(){ const q = safeLower($('attendanceSearch').value); const rows = attendance.filter(row => !q || [row.date,row.employeeName,row.status,row.source,row.remarks].some(v => safeLower(v).includes(q))).sort((a,b) => ((b.date || '') + (b.timeIn||'')).localeCompare((a.date || '') + (a.timeIn||''))); const tbody = $('attendanceTable').querySelector('tbody'); if (!rows.length){ tbody.innerHTML = `<tr><td colspan="9" class="empty">No attendance records yet.</td></tr>`; return; } tbody.innerHTML = rows.map(row => `<tr><td>${row.date || ''}</td><td><strong>${row.employeeName || ''}</strong></td><td>${row.timeIn || ''}</td><td>${row.timeOut || ''}</td><td><span class="badge ${safeLower(row.status)==='present' ? 'ok' : safeLower(row.status)==='late' ? 'warn' : 'gray'}">${row.status || ''}</span></td><td>${row.lateMinutes || 0}</td><td>${row.undertimeMinutes || 0}</td><td>${row.source || ''}</td><td><button class="btn" data-edit-att="${row.recordId}">Open</button></td></tr>`).join(''); tbody.querySelectorAll('[data-edit-att]').forEach(btn => btn.onclick = () => loadAttendanceToForm(btn.dataset.editAtt)); }
+function renderLoans(){ const q = safeLower($('loanSearch').value); const rows = loans.filter(row => !q || [row.loanId,row.employeeName,row.type,row.status,row.remarks].some(v => safeLower(v).includes(q))).sort((a,b) => (b.startDate || '').localeCompare(a.startDate || '')); const tbody = $('loansTable').querySelector('tbody'); if (!rows.length){ tbody.innerHTML = `<tr><td colspan="9" class="empty">No loan records yet.</td></tr>`; return; } tbody.innerHTML = rows.map(row => `<tr><td>${row.loanId || ''}</td><td><strong>${row.employeeName || ''}</strong></td><td>${row.type || ''}</td><td>${money(row.principal)}</td><td>${money(row.deductionPerCutoff)}</td><td>${money(row.balance)}</td><td><span class="badge ${safeLower(row.status)==='open' ? 'warn' : 'ok'}">${row.status || ''}</span></td><td>${row.startDate || ''}</td><td><button class="btn" data-edit-loan="${row.loanId}">Open</button></td></tr>`).join(''); tbody.querySelectorAll('[data-edit-loan]').forEach(btn => btn.onclick = () => loadLoanToForm(btn.dataset.editLoan)); }
+
+function resetEmployeeForm(){ ['empId','empFirstName','empLastName','empPosition','empDepartment','empHireDate','empMonthlyRate','empDailyRate','empSSS','empPhilhealth','empPagibig','empTIN','empContact','empEmergency','empBank','empAccountNo','empNotes'].forEach(id => $(id).value = ''); $('empStatus').value = 'Active'; $('empEmploymentType').value = 'Regular'; $('empPayrollType').value = 'Monthly'; $('empBiometricEnabled').value = 'true'; }
+function loadEmployeeToForm(id){ const emp = employees.find(e => e.employeeId === id); if (!emp) return; $('empId').value = emp.employeeId || ''; $('empFirstName').value = emp.firstName || ''; $('empLastName').value = emp.lastName || ''; $('empStatus').value = emp.status || 'Active'; $('empPosition').value = emp.position || ''; $('empDepartment').value = emp.department || ''; $('empEmploymentType').value = emp.employmentType || 'Regular'; $('empHireDate').value = emp.hireDate || ''; $('empPayrollType').value = emp.payrollType || 'Monthly'; $('empMonthlyRate').value = emp.monthlyRate || ''; $('empDailyRate').value = emp.dailyRate || ''; $('empBiometricEnabled').value = String(emp.biometricEnabled ?? true); $('empSSS').value = emp.sssNo || ''; $('empPhilhealth').value = emp.philhealthNo || ''; $('empPagibig').value = emp.pagibigNo || ''; $('empTIN').value = emp.tinNo || ''; $('empContact').value = emp.contactNo || ''; $('empEmergency').value = emp.emergencyContact || ''; $('empBank').value = emp.bankName || ''; $('empAccountNo').value = emp.accountNo || ''; $('empNotes').value = emp.notes || ''; showView('employees'); window.scrollTo({top:0,behavior:'smooth'}); }
+function resetAttendanceForm(){ $('attDate').value = todayISO(); $('attEmployee').value = ''; $('attTimeIn').value = ''; $('attTimeOut').value = ''; $('attStatus').value = 'Present'; $('attLateMinutes').value = 0; $('attUndertimeMinutes').value = 0; $('attSource').value = 'biometric'; $('attRemarks').value = ''; $('attDate').dataset.recordId = ''; }
+function loadAttendanceToForm(id){ const row = attendance.find(r => r.recordId === id); if (!row) return; $('attDate').value = row.date || ''; $('attEmployee').value = row.employeeId || ''; $('attTimeIn').value = row.timeIn || ''; $('attTimeOut').value = row.timeOut || ''; $('attStatus').value = row.status || 'Present'; $('attLateMinutes').value = row.lateMinutes || 0; $('attUndertimeMinutes').value = row.undertimeMinutes || 0; $('attSource').value = row.source || 'biometric'; $('attRemarks').value = row.remarks || ''; $('attDate').dataset.recordId = row.recordId || ''; showView('attendance'); window.scrollTo({top:0,behavior:'smooth'}); }
+function resetLoanForm(){ $('loanId').value = ''; $('loanEmployee').value = ''; $('loanType').value = 'Loan'; $('loanStatus').value = 'Open'; $('loanStartDate').value = todayISO(); $('loanPrincipal').value = ''; $('loanPerCutoff').value = ''; $('loanBalance').value = ''; $('loanTermCount').value = 1; $('loanRemarks').value = ''; }
+function loadLoanToForm(id){ const row = loans.find(r => r.loanId === id); if (!row) return; $('loanId').value = row.loanId || ''; $('loanEmployee').value = row.employeeId || ''; $('loanType').value = row.type || 'Loan'; $('loanStatus').value = row.status || 'Open'; $('loanStartDate').value = row.startDate || ''; $('loanPrincipal').value = row.principal || ''; $('loanPerCutoff').value = row.deductionPerCutoff || ''; $('loanBalance').value = row.balance || ''; $('loanTermCount').value = row.termCount || 1; $('loanRemarks').value = row.remarks || ''; showView('loans'); window.scrollTo({top:0,behavior:'smooth'}); }
+function fillSettingsForm(){ const cfg = hrSettings || {}; $('setPayDate1').value = cfg.payDate1 || 15; $('setPayDate2').value = cfg.payDate2 || 30; $('setCutoff1').value = cfg.cutoffEnd1 || 10; $('setCutoff2').value = cfg.cutoffEnd2 || 25; $('setNoOvertime').value = String(cfg.noOvertime ?? true); $('setHolidayRule').value = cfg.holidayRule || 'Philippine government holiday rules'; $('setBiometricRequired').value = String(cfg.biometricRequired ?? true); $('setWorkdays').value = cfg.workdaysPerWeek || 6; $('setNotes').value = cfg.notes || $('setNotes').value; }
+
+async function refreshAll(){
+    $('syncMsg').textContent = 'Refreshing HR data…';
+    const [empSnap, attSnap, loanSnap, settingsSnap] = await Promise.all([branchRef().collection('hr_employees').get(), branchRef().collection('hr_attendance').get(), branchRef().collection('hr_loans').get(), settingsRef().get()]);
+    employees = empSnap.docs.map(d => ({...d.data(), employeeId: d.id}));
+    attendance = attSnap.docs.map(d => ({...d.data(), recordId: d.id}));
+    loans = loanSnap.docs.map(d => ({...d.data(), loanId: d.id}));
+    hrSettings = settingsSnap.exists ? settingsSnap.data() : null;
+    populateEmployeeSelectors();
+    renderSnapshot();
+    renderEmployees();
+    renderAttendance();
+    renderLoans();
+    fillSettingsForm();
+    $('syncMsg').textContent = `Last refreshed: ${new Date().toLocaleString()}`;
+}
+
+async function saveEmployee(){ const employeeId = ($('empId').value || '').trim() || `EMP-${String(Date.now()).slice(-6)}`; const data = {employeeId, firstName:$('empFirstName').value.trim(), lastName:$('empLastName').value.trim(), status:$('empStatus').value, position:$('empPosition').value.trim(), department:$('empDepartment').value.trim(), employmentType:$('empEmploymentType').value, hireDate:$('empHireDate').value, payrollType:$('empPayrollType').value, monthlyRate:Number($('empMonthlyRate').value || 0), dailyRate:Number($('empDailyRate').value || 0), biometricEnabled:$('empBiometricEnabled').value === 'true', sssNo:$('empSSS').value.trim(), philhealthNo:$('empPhilhealth').value.trim(), pagibigNo:$('empPagibig').value.trim(), tinNo:$('empTIN').value.trim(), contactNo:$('empContact').value.trim(), emergencyContact:$('empEmergency').value.trim(), bankName:$('empBank').value.trim(), accountNo:$('empAccountNo').value.trim(), notes:$('empNotes').value.trim(), branchId:currentBranch, updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:currentUser?.uid || ''}; await employeeRef(employeeId).set(data,{merge:true}); $('empId').value = employeeId; await refreshAll(); }
+async function saveAttendance(){ const employeeId = $('attEmployee').value; const emp = employees.find(e => e.employeeId === employeeId); const recordId = $('attDate').dataset.recordId || `${employeeId}_${$('attDate').value}`; const data = {recordId, date:$('attDate').value, employeeId, employeeName:emp ? employeeName(emp) : '', timeIn:$('attTimeIn').value, timeOut:$('attTimeOut').value, status:$('attStatus').value, lateMinutes:Number($('attLateMinutes').value || 0), undertimeMinutes:Number($('attUndertimeMinutes').value || 0), source:$('attSource').value, remarks:$('attRemarks').value.trim(), branchId:currentBranch, approvedBy:currentUser?.uid || '', approvedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedAt:firebase.firestore.FieldValue.serverTimestamp()}; await attendanceRef(recordId).set(data,{merge:true}); $('attDate').dataset.recordId = recordId; await refreshAll(); }
+async function saveLoan(){ const loanId = ($('loanId').value || '').trim() || `LOAN-${String(Date.now()).slice(-6)}`; const employeeId = $('loanEmployee').value; const emp = employees.find(e => e.employeeId === employeeId); const data = {loanId, employeeId, employeeName:emp ? employeeName(emp) : '', type:$('loanType').value, status:$('loanStatus').value, startDate:$('loanStartDate').value, principal:Number($('loanPrincipal').value || 0), deductionPerCutoff:Number($('loanPerCutoff').value || 0), balance:Number($('loanBalance').value || 0), termCount:Number($('loanTermCount').value || 1), remarks:$('loanRemarks').value.trim(), branchId:currentBranch, createdBy:currentUser?.uid || '', updatedAt:firebase.firestore.FieldValue.serverTimestamp()}; await loanRef(loanId).set(data,{merge:true}); $('loanId').value = loanId; await refreshAll(); }
+async function saveSettings(){ const data = {payDate1:Number($('setPayDate1').value || 15), payDate2:Number($('setPayDate2').value || 30), cutoffEnd1:Number($('setCutoff1').value || 10), cutoffEnd2:Number($('setCutoff2').value || 25), noOvertime:$('setNoOvertime').value === 'true', holidayRule:$('setHolidayRule').value, biometricRequired:$('setBiometricRequired').value === 'true', workdaysPerWeek:Number($('setWorkdays').value || 6), notes:$('setNotes').value.trim(), governmentDeductions:['SSS','PhilHealth','Pag-IBIG','Withholding Tax'], updatedAt:firebase.firestore.FieldValue.serverTimestamp(), updatedBy:currentUser?.uid || ''}; await settingsRef().set(data,{merge:true}); await refreshAll(); }
+
+// ==========================================
+// NEW: PAYROLL ENGINE LOGIC
+// ==========================================
+function generatePayrollBatch() {
+    const startDate = $('payStart').value;
+    const endDate = $('payEnd').value;
+    const govOption = $('payGov').value; // 'none', 'half', 'full'
+
+    if (!startDate || !endDate) return alert("Please select a Cutoff Start and End Date.");
+    if (startDate > endDate) return alert("Start date cannot be after end date.");
+
+    currentPayrollBatch = [];
+    const tbody = $('payrollTable').querySelector('tbody');
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Calculating...</td></tr>';
+
+    const activeEmployees = employees.filter(e => safeLower(e.status) === 'active');
+    if (activeEmployees.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">No active employees found.</td></tr>';
+        return;
+    }
+
+    activeEmployees.forEach(emp => {
+        // 1. Gather Attendance for this cutoff
+        const empAtt = attendance.filter(a => a.employeeId === emp.employeeId && a.date >= startDate && a.date <= endDate);
+
+        let daysPresent = 0;
+        let totalLateMins = 0;
+        let totalUTMins = 0;
+
+        empAtt.forEach(a => {
+            if (['present', 'late', 'halfday'].includes(safeLower(a.status))) {
+                daysPresent += (safeLower(a.status) === 'halfday' ? 0.5 : 1);
+            }
+            totalLateMins += Number(a.lateMinutes || 0);
+            totalUTMins += Number(a.undertimeMinutes || 0);
+        });
+
+        // 2. Calculate Basic Pay
+        let dailyRate = Number(emp.dailyRate || 0);
+        let monthlyRate = Number(emp.monthlyRate || 0);
+
+        // Safety net: if monthly but no daily rate, estimate it (assumes 26 days)
+        if (emp.payrollType === 'Monthly' && dailyRate === 0) {
+            dailyRate = monthlyRate / 26;
+        }
+
+        let basicPay = 0;
+        if (emp.payrollType === 'Monthly') {
+            basicPay = monthlyRate / 2; // Semi-monthly cutoff base
+            // Note: In strict PH payroll, absences deduct from this base.
+            // For V1, we rely on the late/undertime deduction.
+        } else {
+            basicPay = daysPresent * dailyRate;
+        }
+
+        // 3. Calculate Lates & Undertime Deduction
+        // Assumes 8 hour workday
+        const perMinuteRate = dailyRate / 8 / 60;
+        const lateDeduction = (totalLateMins + totalUTMins) * perMinuteRate;
+
+        const grossPay = basicPay - lateDeduction;
+
+        // 4. Calculate Loan Deductions
+        let loanDeduction = 0;
+        let activeLoans = [];
+
+        loans.filter(l => l.employeeId === emp.employeeId && safeLower(l.status) === 'open' && Number(l.balance) > 0).forEach(l => {
+            // Don't deduct more than what they owe
+            const deductionAmount = Math.min(Number(l.deductionPerCutoff), Number(l.balance));
+            loanDeduction += deductionAmount;
+            activeLoans.push({ loanId: l.loanId, deduction: deductionAmount, remainingBalance: Number(l.balance) - deductionAmount });
+        });
+
+        // 5. Calculate Gov Deductions (Standard PH Estimates)
+        let govDeduction = 0;
+        let govDetails = { sss: 0, phic: 0, hdmf: 0 };
+
+        if (govOption !== 'none' && emp.payrollType === 'Monthly') {
+            const multiplier = govOption === 'full' ? 1 : 0.5;
+
+            // PH Standard Estimates: SSS ~4.5%, PHIC 2.5%, HDMF P200
+            govDetails.sss = (monthlyRate * 0.045) * multiplier;
+            govDetails.phic = (monthlyRate * 0.025) * multiplier;
+            govDetails.hdmf = 200 * multiplier;
+
+            govDeduction = govDetails.sss + govDetails.phic + govDetails.hdmf;
+        }
+
+        // 6. Net Pay
+        const netPay = grossPay - loanDeduction - govDeduction;
+
+        currentPayrollBatch.push({
+            employeeId: emp.employeeId,
+            name: employeeName(emp),
+            basicPay,
+            lateDeduction,
+            grossPay,
+            loanDeduction,
+            activeLoans,
+            govDeduction,
+            govDetails,
+            netPay,
+            daysPresent,
+            totalLateMins
+        });
+    });
+
+    // Render Table
+    tbody.innerHTML = currentPayrollBatch.map(p => `
+        <tr>
+            <td><strong>${p.name}</strong><div style="font-size:11px; color:var(--muted);">${p.employeeId}</div></td>
+            <td class="num-right">${money(p.basicPay)}</td>
+            <td class="num-right" style="color:var(--orange);">${money(p.lateDeduction)}</td>
+            <td class="num-right" style="color:var(--blue2); font-weight:700;">${money(p.grossPay)}</td>
+            <td class="num-right" style="color:var(--red);">${money(p.loanDeduction)}</td>
+            <td class="num-right" style="color:var(--red);">${money(p.govDeduction)}</td>
+            <td class="num-right" style="color:var(--green); font-weight:800;">${money(p.netPay)}</td>
+        </tr>
+    `).join('');
+
+    $('btnPrintPayslips').disabled = false;
+    $('btnSavePayrollBatch').disabled = false;
+}
+
+async function savePayrollBatch() {
+    if (currentPayrollBatch.length === 0) return;
+    if (!confirm("This will permanently save the payroll records and automatically DEDUCT the loan balances. Continue?")) return;
+
+    $('btnSavePayrollBatch').textContent = "Saving and Updating Loans...";
+    $('btnSavePayrollBatch').disabled = true;
+
+    try {
+        const batchDate = new Date().toISOString().replace(/[:.]/g, '-');
+        const batchRefId = `BATCH-${batchDate}`;
+        const batchWriter = db.batch();
+
+        // 1. Save the master batch record
+        const masterRef = branchRef().collection('hr_payroll_batches').doc(batchRefId);
+        batchWriter.set(masterRef, {
+            cutoffStart: $('payStart').value,
+            cutoffEnd: $('payEnd').value,
+            processedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            processedBy: currentUser?.uid || '',
+            totalGross: currentPayrollBatch.reduce((acc, p) => acc + p.grossPay, 0),
+            totalNet: currentPayrollBatch.reduce((acc, p) => acc + p.netPay, 0),
+            employeeCount: currentPayrollBatch.length
+        });
+
+        // 2. Save individual payslips and update loans
+        currentPayrollBatch.forEach(p => {
+            // Save Payslip
+            const slipRef = branchRef().collection('hr_payslips').doc(`${batchRefId}_${p.employeeId}`);
+            batchWriter.set(slipRef, { ...p, batchId: batchRefId });
+
+            // Update Loan Balances
+            p.activeLoans.forEach(loan => {
+                const lRef = branchRef().collection('hr_loans').doc(loan.loanId);
+                const statusUpdate = loan.remainingBalance <= 0 ? 'Closed' : 'Open';
+                batchWriter.set(lRef, {
+                    balance: loan.remainingBalance,
+                    status: statusUpdate,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            });
+        });
+
+        await batchWriter.commit();
+        alert("Payroll Batch saved successfully and loan balances updated!");
+
+        $('btnSavePayrollBatch').textContent = "Save Payroll & Update Loan Balances";
+
+        // Refresh everything so loans show new balances
+        await refreshAll();
+    } catch (err) {
+        console.error(err);
+        alert("Failed to save payroll batch. Check console.");
+        $('btnSavePayrollBatch').textContent = "Save Payroll & Update Loan Balances";
+        $('btnSavePayrollBatch').disabled = false;
+    }
+}
+
+function printPayslips() {
+    if (currentPayrollBatch.length === 0) return;
+
+    const start = $('payStart').value;
+    const end = $('payEnd').value;
+    const clinicName = window.OMS_CONFIG?.clinicName || "LEADSERVE Clinic";
+
+    let html = '';
+    currentPayrollBatch.forEach(p => {
+        html += `
+            <div class="payslip">
+                <div class="payslip-header">
+                    <div>${clinicName}</div>
+                    <div>PAYSLIP</div>
+                    <div style="font-weight:normal; font-size:10px; margin-top:4px;">Cutoff: ${start} to ${end}</div>
+                </div>
+
+                <div class="payslip-row">
+                    <span><strong>Name:</strong> ${p.name}</span>
+                    <span><strong>ID:</strong> ${p.employeeId}</span>
+                </div>
+
+                <div class="payslip-section">
+                    <div style="font-weight:bold; margin-bottom:4px;">EARNINGS</div>
+                    <div class="payslip-row"><span>Basic Pay (${p.daysPresent} days)</span><span>${money(p.basicPay)}</span></div>
+                    <div class="payslip-row"><span>Late/UT Deduction (${p.totalLateMins} mins)</span><span style="color:#d32f2f;">-${money(p.lateDeduction)}</span></div>
+                    <div class="payslip-row payslip-total"><span>GROSS PAY</span><span>${money(p.grossPay)}</span></div>
+                </div>
+
+                <div class="payslip-section">
+                    <div style="font-weight:bold; margin-bottom:4px;">DEDUCTIONS</div>
+                    <div class="payslip-row"><span>Gov (SSS)</span><span>${money(p.govDetails.sss)}</span></div>
+                    <div class="payslip-row"><span>Gov (PhilHealth)</span><span>${money(p.govDetails.phic)}</span></div>
+                    <div class="payslip-row"><span>Gov (Pag-IBIG)</span><span>${money(p.govDetails.hdmf)}</span></div>
+                    <div class="payslip-row"><span>Loan Installments</span><span>${money(p.loanDeduction)}</span></div>
+                </div>
+
+                <div class="payslip-row payslip-total">
+                    <span>NET TAKE HOME PAY</span>
+                    <span>${money(p.netPay)}</span>
+                </div>
+
+                <div style="margin-top:30px; border-top:1px solid #000; width:150px; text-align:center; font-size:10px; padding-top:4px;">
+                    Employee Signature
+                </div>
+            </div>
+            <div style="page-break-after: always;"></div>
+        `;
+    });
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write('<!doctype html><html><head><title>Print Payslips</title><style>' + document.querySelector('style').innerHTML + '</style></head><body onload="window.print(); setTimeout(function(){window.close();},500);"><div class="print-area">' + html + '</div></body></html>');
+    printWin.document.close();
+}
+
+// UI Interactions
+$('btnNewEmployee').onclick = resetEmployeeForm;
+$('btnSaveEmployee').onclick = saveEmployee;
+$('btnNewAttendance').onclick = resetAttendanceForm;
+$('btnSaveAttendance').onclick = saveAttendance;
+$('btnNewLoan').onclick = resetLoanForm;
+$('btnSaveLoan').onclick = saveLoan;
+$('btnSaveSettings').onclick = saveSettings;
+$('btnRefreshAll').onclick = refreshAll;
+$('employeeSearch').oninput = renderEmployees;
+$('attendanceSearch').oninput = renderAttendance;
+$('loanSearch').oninput = renderLoans;
+$('btnTimeIn').onclick = () => { $('attDate').value = todayISO(); $('attTimeIn').value = nowTime(); $('attSource').value = 'biometric'; };
+$('btnTimeOut').onclick = () => { $('attDate').value = todayISO(); $('attTimeOut').value = nowTime(); $('attSource').value = 'biometric'; };
+$('branchSelect').onchange = async () => { currentBranch = $('branchSelect').value; await refreshAll(); };
+
+// Payroll Listeners
+$('btnGeneratePayroll').onclick = generatePayrollBatch;
+$('btnSavePayrollBatch').onclick = savePayrollBatch;
+$('btnPrintPayslips').onclick = printPayslips;
+
+// Excel Import Parser
+const fileInput = $('fileEmpExcel');
+if(fileInput) {
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(sheet, {defval: ""});
+
+                if(!json.length) return alert("The uploaded Excel file appears to be empty.");
+                $('syncMsg').textContent = `Importing ${json.length} employees to Firestore...`;
+
+                let count = 0;
+                for(const row of json) {
+                    const rawFirstName = String(row['First Name'] || row['FirstName'] || row['first name'] || '').trim();
+                    const rawLastName = String(row['Last Name'] || row['LastName'] || row['last name'] || '').trim();
+                    if(!rawFirstName && !rawLastName) continue;
+
+                    const empId = String(row['Employee ID'] || row['ID'] || '').trim() || `EMP-${String(Date.now() + count).slice(-6)}`;
+                    const payload = {
+                        employeeId: empId,
+                        firstName: rawFirstName,
+                        lastName: rawLastName,
+                        position: String(row['Position'] || '').trim(),
+                        department: String(row['Department'] || '').trim(),
+                        monthlyRate: Number(row['Monthly Rate'] || row['Monthly'] || 0),
+                        dailyRate: Number(row['Daily Rate'] || row['Daily'] || 0),
+                        status: String(row['Status'] || 'Active').trim(),
+                        branchId: currentBranch,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await employeeRef(empId).set(payload, {merge: true});
+                    count++;
+                }
+                fileInput.value = '';
+                await refreshAll();
+                alert(`Successfully imported ${count} employees!`);
+                $('syncMsg').textContent = `Import complete. Ready.`;
+            } catch(err) {
+                alert("Error parsing Excel file. Ensure it is a valid .xlsx or .csv format.");
+                console.error(err);
+                $('syncMsg').textContent = `Error during import.`;
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+auth.onAuthStateChanged(async (user) => {
+    if (!user){ location.href = signedOutRedirectUrl(); return; }
+    currentUser = user;
+    try {
+        const profile = await loadUserProfile(user.uid);
+        if (!hasHRAccess(profile)) {
+            setAccessDenied('Access denied. This account does not have HR module permission.');
+            return;
+        }
+        currentRole = String(profile?.role || '');
+        userModules = Array.isArray(profile?.modules) ? profile.modules : [];
+        const branches = Array.isArray(profile?.branchAccess) ? profile.branchAccess : [];
+
+        if (branches.length){
+            currentBranch = branches[0];
+            $('branchSelect').value = branches[0];
+            Array.from($('branchSelect').options).forEach(opt => {
+                opt.disabled = !branches.includes(opt.value);
+            });
+        }
+        resetEmployeeForm();
+        resetAttendanceForm();
+        resetLoanForm();
+        fillSettingsForm();
+        await refreshAll();
+    } catch (err){
+        $('accessMsg').classList.remove('hidden');
+        $('accessMsg').textContent = 'HR module could not load user permissions. Check Firestore rules and oms_users records.';
+    }
+});
+</script>
+</body>
+</html>

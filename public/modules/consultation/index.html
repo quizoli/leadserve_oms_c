@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>LEADSERVE OMS — Local OMS v3.5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <style>
+    @page { size: A4; margin: 14mm; }
+    :root { --brand:#0a3d62; --ink:#0f172a; --bg:#f7f9fc; --line:#e5e7eb; --muted:#667085; }
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', ui-sans-serif, system-ui, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .wrap { max-width: 1100px; margin: 14px auto; padding: 0 14px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+    .tab {
+      border: 1px solid var(--line); padding: 8px 12px; border-radius: 8px;
+      background: #fff; cursor: pointer; font-weight: 600; color: var(--muted);
+    }
+    .tab.active { background: var(--brand); color: #fff; border-color: transparent; }
+
+    /* Cards and Grids */
+    .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 12px;
+      padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-bottom: 12px;
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+    /* Forms */
+    label { display: block; font-size: .85rem; font-weight: 500; color: #475569; margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1;
+      border-radius: 8px; font-size: 14px; background: #f8fafc; font-family: 'Inter', sans-serif;
+    }
+    textarea { resize: vertical; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 16px; border: 1px solid var(--line); border-radius: 8px;
+      background: #fff; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif;
+    }
+    .btn.primary { background: #2563eb; color: #fff; border-color: transparent; }
+    .btn.danger { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+    .btn.btn-sm { padding: 4px 8px; font-size: 12px; }
+
+    /* Tables */
+    .table-scroll { width: 100%; overflow: auto; border: 1px solid var(--line); border-radius: 8px; margin-top: 16px;}
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f8fafc; color: #475569; font-size: 13px; font-weight: 600; text-transform: uppercase; padding: 12px; text-align: left; border-bottom: 1px solid var(--line); }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    tbody tr:hover { background: #f8fafc; cursor: pointer; }
+    tr.sel td { background: #eff6ff; }
+
+    /* Badges & Utilities */
+    .muted { color: var(--muted); font-size: .85rem; }
+    .hidden { display: none !important; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .chip { background: #eef2ff; color: #1e3a8a; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 600;}
+
+    /* Files */
+    .filelist { border: 1px dashed var(--line); border-radius: 10px; padding: 12px; margin-top: 8px; }
+    .file-row { display: flex; align-items: center; justify-content: space-between; padding: 8px; border: 1px solid #eee; border-radius: 8px; margin: 4px 0; background: #fff;}
+    .labelline { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+
+    @media print {
+      header, .tabs, .noprint { display: none !important; }
+      body { background: #fff; }
+      .card { border: none; box-shadow: none; padding: 0; margin: 0; }
+      #homeBtnWrap { display: none !important; }
+    }
+  </style>
+  <script defer src="../../assets/header.js"></script>
+</head>
+<body>
+
+  <msn-header></msn-header>
+
+  <div class="wrap">
+    <div class="tabs noprint">
+      <div class="tab active" data-tab="patients">Patients</div>
+      <div class="tab" data-tab="appts">Appointments</div>
+      <div class="tab" data-tab="consult">Consultation</div>
+      <div class="tab" data-tab="pos" id="posTab">Charge Slip / POS</div>
+      <div class="tab" data-tab="backup">Data/Export</div>
+    </div>
+
+    <section id="patients" class="card">
+      <h3>Patient Registry</h3>
+      <div class="grid4">
+        <div><label>ID (auto)</label><input id="p_id" disabled placeholder="Auto"></div>
+        <div><label>Date Registered</label><input id="p_regdate" type="date"></div>
+        <div><label>Primary Physician</label>
+            <select id="p_physician"><option value="">-- Select --</option></select>
+        </div>
+        <div><label>Phone</label><input id="p_phone"></div>
+
+        <div><label>Last Name</label><input id="p_lname"></div>
+        <div><label>First Name</label><input id="p_fname"></div>
+        <div><label>Middle Name</label><input id="p_mname"></div>
+        <div><label>Sex</label>
+          <select id="p_sex">
+            <option value=""></option><option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+
+        <div><label>Age</label><input id="p_age" type="number" min="0"></div>
+        <div style="grid-column: 2 / span 3;"><label>Address</label><input id="p_addr"></div>
+      </div>
+
+      <fieldset style="margin-top:16px; padding:12px 14px; border:1px solid #e2e8f0; border-radius:8px;">
+        <legend style="padding:0 6px; font-weight:700; color:#0f172a;">Patient Eligibility</legend>
+        <div class="grid4" style="align-items:end;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="p_is_senior" style="width:18px; height:18px;">
+            <label for="p_is_senior" style="margin:0; font-weight:700;">Senior Citizen</label>
+          </div>
+          <div style="grid-column: span 2;">
+            <label>Senior Citizen Valid ID No.</label>
+            <input id="p_senior_id" placeholder="Required if senior">
+          </div>
+          <div></div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" id="p_is_pwd" style="width:18px; height:18px;">
+            <label for="p_is_pwd" style="margin:0; font-weight:700;">PWD</label>
+          </div>
+          <div style="grid-column: span 2;">
+            <label>PWD Valid ID No.</label>
+            <input id="p_pwd_id" placeholder="Required if PWD">
+          </div>
+          <div></div>
+        </div>
+      </fieldset>
+
+      <div class="grid4" style="margin-top:12px;">
+        <div style="grid-column:1/-1"><label>Allergies / Notes</label><textarea id="p_notes" rows="2"></textarea></div>
+      </div>
+      <div class="row noprint" style="margin-top:16px">
+        <button class="btn primary" id="btnSavePatient">Save / Update</button>
+        <button class="btn" id="btnNewPatient">New Patient</button>
+        <button class="btn danger" id="btnDeletePatient">Delete</button>
+        <button class="btn" id="btnExportPatients">Export CSV</button>
+      </div>
+
+      <div class="card" style="margin-top:20px; background:#f8fafc;">
+        <div class="labelline">
+          <h3 style="margin:0;">Patient Files (X‑ray, Labs, OCT, etc.)</h3>
+          <span id="pf_for" class="chip hidden"></span>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <select id="p_upload_patient" style="width:250px;" title="Upload to this patient"></select>
+          <input type="file" id="p_files" multiple style="width:auto; background:#fff;">
+          <button class="btn primary" id="btnUploadFiles">Upload to Patient</button>
+        </div>
+        <div id="p_filelist" class="filelist"></div>
+      </div>
+
+      <div class="row noprint" style="justify-content:space-between; margin-top:20px">
+        <input id="p_search" placeholder="Search patients (name / phone)..." style="max-width:380px">
+        <div class="muted">Click a row to load the patient profile.</div>
+      </div>
+      <div class="table-scroll">
+          <table id="tblPatients">
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Primary Doctor</th><th>Age</th><th>Sex</th><th>Phone</th><th>Action</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+      </div>
+    </section>
+
+    <section id="appts" class="card hidden">
+      <h3>Appointments & Scheduler</h3>
+      <div class="grid3">
+        <div><label>Patient</label><select id="a_patient"></select></div>
+        <div><label>Attending Physician</label>
+            <select id="a_physician"><option value="">-- Select --</option></select>
+        </div>
+        <div><label>Mode</label>
+          <select id="a_mode"><option>Walk-in</option><option>Call-in</option><option>Online</option></select>
+        </div>
+
+        <div>
+          <label>Date(s) <span class="muted" style="font-size:11px; font-weight:normal;">(Click to pick multiple!)</span></label>
+          <input id="a_date" type="text" placeholder="Select dates..." style="background:#fff; cursor:pointer;">
+        </div>
+        <div><label>Time Slot</label>
+          <select id="a_slot"><option value=""></option><option>AM</option><option>PM</option></select>
+        </div>
+        <div><label>Reason</label><input id="a_reason"></div>
+      </div>
+      <div class="row noprint" style="margin-top:16px">
+        <button class="btn primary" id="btnAddAppt">Add Appointment(s)</button>
+        <button class="btn" id="btnClearAppt">Clear Form</button>
+        <button class="btn" id="btnExportAppts">Export CSV</button>
+      </div>
+
+      <div style="margin-top:24px; background:#f8fafc; padding:16px; border-radius:8px; border:1px solid #e2e8f0;">
+        <div class="row" style="gap: 12px; align-items: center;">
+          <label style="margin-bottom:0; font-weight:700; color:#0f172a;">Doctor:</label>
+          <select id="a_filter_doctor" style="width:180px;">
+              <option value="ALL">All Doctors</option>
+          </select>
+
+          <label style="margin-bottom:0; font-weight:700; color:#0f172a; margin-left:8px;">Date Filter:</label>
+          <select id="a_filter_type" style="width:140px;">
+            <option value="day">Specific Day</option>
+            <option value="month">Specific Month</option>
+            <option value="range">Date Range</option>
+          </select>
+
+          <input id="a_filter_date" type="date" style="width:150px;">
+          <input id="a_filter_month" type="month" style="width:150px;" class="hidden">
+          <div id="a_filter_range_wrap" class="row hidden" style="margin:0; gap:8px; align-items:center;">
+            <input id="a_filter_start" type="date" style="width:140px;">
+            <span style="font-size:14px; font-weight:500;">to</span>
+            <input id="a_filter_end" type="date" style="width:140px;">
+          </div>
+
+          <div style="flex-grow: 1;"></div>
+          <button class="btn primary" id="btnApplyFilter">Apply Filter</button>
+          <button class="btn" id="btnApptAll">Clear All Filters</button>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table id="tblAppt">
+          <thead>
+            <tr><th>Date</th><th>Time</th><th>Patient</th><th>Doctor</th><th>Mode</th><th>Reason</th><th>Reminder</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="consult" class="card hidden">
+      <div class="labelline">
+        <h3 style="margin:0;">Consultation (OPD)</h3>
+        <span id="cf_for" class="chip hidden"></span>
+      </div>
+      <div class="grid3" style="margin-top:12px;">
+        <div><label>Patient</label><select id="c_patient"></select></div>
+        <div><label>Attending Physician</label><select id="c_physician"><option value="">-- Select --</option></select></div>
+        <div><label>Visit Date</label><input id="c_date" type="date"></div>
+        <div style="grid-column:1/-1"><label>Chief Complaint</label><input id="c_cc"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div><label>Exam / Findings</label><textarea id="c_exam" rows="4"></textarea></div>
+        <div>
+          <label>Diagnosis</label>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px">
+            <select id="c_dx_select" style="flex:1"></select>
+            <button class="btn" type="button" id="btnAddDx">Add</button>
+            <button class="btn" type="button" id="btnClearDx">Clear</button>
+          </div>
+          <input id="c_dx_custom" class="hidden" placeholder="Custom diagnosis..." style="margin-bottom:6px">
+          <textarea id="c_dx" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div><label>Plan / Medications</label><textarea id="c_plan" rows="4"></textarea></div>
+        <div>
+          <label>Remarks</label>
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px">
+            <select id="c_remarks_select" style="flex:1"></select>
+            <button class="btn" type="button" id="btnAddRemarks">Add</button>
+            <button class="btn" type="button" id="btnClearRemarks">Clear</button>
+          </div>
+          <input id="c_remarks_custom" class="hidden" placeholder="Custom remarks / specify details..." style="margin-bottom:6px">
+          <textarea id="c_remarks" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px; background:#f8fafc;">
+        <div class="labelline">
+          <h3 style="margin:0;">Patient Attachments</h3>
+          <span id="af_for" class="chip hidden"></span>
+        </div>
+        <div class="row noprint" style="margin-bottom:8px">
+          <button class="btn" id="btnRefreshAttachments">Refresh attachments</button>
+        </div>
+        <div id="c_filelist" class="filelist"></div>
+      </div>
+
+      <div class="row noprint" style="margin-top:20px">
+        <button class="btn primary" id="btnSaveConsult">Save Visit</button>
+        <button class="btn" id="btnClearConsult">Clear Form</button>
+        <button class="btn" id="btnExportVisits">Export CSV</button>
+        <button class="btn" id="btnOpenCF4">PhilHealth CF4</button>
+      </div>
+
+      <div class="card noprint" style="margin-top:20px; background:#f8fafc;">
+        <div class="labelline">
+          <h3 style="margin:0;">Consultation List Filters</h3>
+          <span class="muted">Patient search updates while typing.</span>
+        </div>
+        <div class="grid3" style="margin-top:12px;">
+          <div><label>Patient Name</label><input id="visitFilterPatient" placeholder="Type patient name..."></div>
+          <div><label>Visit Date</label><input id="visitFilterDate" type="date"></div>
+          <div><label>Physician</label><select id="visitFilterPhysician"><option value="">All physicians</option></select></div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn" id="btnClearVisitFilters" type="button">Clear Filters</button>
+          <span id="visitFilterCount" class="muted"></span>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table id="tblVisits">
+          <thead>
+            <tr><th>Date</th><th>Patient</th><th>Doctor</th><th>CC</th><th>Findings</th><th>Dx</th><th>Plan</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="muted" style="margin-top:8px;">Click a visit row to load it back for editing.</div>
+    </section>
+
+    <section id="pos" class="card hidden">
+      <div class="labelline">
+        <h3 style="margin:0;">Charge Slip / POS</h3>
+        <span class="chip muted">Linked to the currently selected patient in Consultation.</span>
+      </div>
+      <div style="height:820px; padding:0; border-radius:12px; overflow:hidden; background:#fff; border:1px solid #e2e8f0; margin-top:12px;">
+        <iframe id="posFrame" src="about:blank" style="width:100%; height:100%; border:0;" loading="lazy"></iframe>
+      </div>
+    </section>
+  </div>
+
+  <script src="../../config.js"></script>
+  <script src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="../../assets/leadserve-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <script>
+    if (!firebase.apps.length) {
+        firebase.initializeApp(window.OMS_CONFIG.firebase);
+    }
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+  </script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+      // ==========================================
+      // GLOBAL MEMORY CACHE (ZERO LATENCY)
+      // ==========================================
+      window.cachedPatients = [];
+      window.cachedAppts = [];
+
+      let currentLoadedPatientId = 0;
+      let editingApptId = null;
+      let editingVisitId = null;
+      let apptDatePicker;
+
+      const el = id => document.getElementById(id);
+
+      const DX_LIST = [
+        "Cataract Senile Mature", "Traumatic Cataract", "Posterior Capsular Opacification",
+        "Pseudophakia", "Aphakia", "Pterygium", "Bipolar Pterygium", "Recurrent Pterygium",
+        "Primary Pterygium", "Dry Eye Syndrome", "Proliferative Diabetic Retinopathy",
+        "Non- Proliferative Diabetic Retinopathy", "Central Retinal Vein Occlusion",
+        "Blepharitis", "Conjunctivitis", "Endophthalmitis", "Episcleritis", "Keratitis",
+        "Optic Neuritis", "Uveitis", "Branch Retinal Vein Occlusion", "Myopia",
+        "Retinal Detachment", "Glaucoma", "Angle Closure Glaucoma",
+        "Primary Open- Angle Glaucoma", "Corneal Foreign Body", "Astigmatism"
+      ];
+
+      const REMARKS_LIST = [
+        "For PhilHealth pre-approval", "For CP Clearance", "For Phacoemulsification w/ IOL (specify) / LA",
+        "For Pterygium Excision", "For Trabeculectomy", "For Yag / PRP Laser",
+        "For Intravitreal (specify) Injection", "For Retinal Detachment Surgery",
+        "For Fundus Photo / OCT / FA", "Others (specify)"
+      ];
+
+      // Setup Diagnosis Dropdown
+      !function() {
+        const dxSelect = el("c_dx_select");
+        if (!dxSelect) return;
+        const dxCustom = el("c_dx_custom"), btnAddDx = el("btnAddDx"), btnClearDx = el("btnClearDx"), dxArea = el("c_dx");
+
+        dxSelect.innerHTML = '<option value="">Select diagnosis...</option>';
+        DX_LIST.forEach(dx => dxSelect.insertAdjacentHTML('beforeend', `<option value="${dx}">${dx}</option>`));
+        dxSelect.insertAdjacentHTML('beforeend', '<option value="__custom__">Custom...</option>');
+
+        function toggleCustom(show) {
+          if (show) { dxCustom.classList.remove("hidden"); dxCustom.focus(); }
+          else { dxCustom.classList.add("hidden"); dxCustom.value = ""; }
+        }
+
+        dxSelect.addEventListener("change", () => toggleCustom(dxSelect.value === "__custom__"));
+
+        if (btnAddDx) btnAddDx.addEventListener("click", () => {
+          let val = dxSelect.value === "__custom__" ? (dxCustom.value || "").trim() : (dxSelect.value || "").trim();
+          if (!val) return alert("Please select or type a diagnosis.");
+          dxArea.value = dxArea.value.trim() ? dxArea.value.trim() + "\n" + val : val;
+          dxSelect.value = ""; toggleCustom(false);
+        });
+
+        if (btnClearDx) btnClearDx.addEventListener("click", () => {
+          if (confirm("Clear diagnosis?")) { dxArea.value = ""; dxSelect.value = ""; toggleCustom(false); }
+        });
+      }();
+
+      // Setup Remarks Dropdown
+      !function() {
+        const remSelect = el("c_remarks_select");
+        if (!remSelect) return;
+        const remCustom = el("c_remarks_custom"), btnAddRem = el("btnAddRemarks"), btnClearRem = el("btnClearRemarks"), remArea = el("c_remarks");
+
+        remSelect.innerHTML = '<option value="">Select remark...</option>';
+        REMARKS_LIST.forEach(rm => remSelect.insertAdjacentHTML('beforeend', `<option value="${rm}">${rm}</option>`));
+        remSelect.insertAdjacentHTML('beforeend', '<option value="__custom__">Custom...</option>');
+
+        const needsSpecify = val => !!val && val.includes("(specify)");
+
+        function toggleCustom(show) {
+          if (show) { remCustom.classList.remove("hidden"); remCustom.focus(); }
+          else { remCustom.classList.add("hidden"); remCustom.value = ""; }
+        }
+
+        remSelect.addEventListener("change", () => toggleCustom(remSelect.value === "__custom__" || needsSpecify(remSelect.value)));
+
+        if (btnAddRem) btnAddRem.addEventListener("click", () => {
+          let val = (remSelect.value || "").trim();
+          let customVal = (remCustom.value || "").trim();
+          if (!val) return alert("Please select or type a remark.");
+
+          if (val === "__custom__") {
+            if (!customVal) return alert("Please type your custom remark.");
+            val = customVal;
+          } else if (needsSpecify(val)) {
+            if (!customVal) return alert("Please specify details.");
+            val = val.replace("(specify)", "").trim() + ": " + customVal;
+          }
+
+          remArea.value = remArea.value.trim() ? remArea.value.trim() + "\n" + val : val;
+          remSelect.value = ""; toggleCustom(false);
+        });
+
+        if (btnClearRem) btnClearRem.addEventListener("click", () => {
+          if (confirm("Clear remarks?")) { remArea.value = ""; remSelect.value = ""; toggleCustom(false); }
+        });
+      }();
+
+      // Helpers
+      const setLabel = (id, name, pId) => {
+        const lbl = el(id);
+        if (lbl) {
+            if (name && pId) { lbl.classList.remove("hidden"); lbl.textContent = `${name} (ID ${pId})`; }
+            else { lbl.classList.add("hidden"); lbl.textContent = ""; }
+        }
+      };
+
+      const getTodayISO = () => new Date().toISOString().slice(0, 10);
+      const formatName = (p) => p ? `${p.lname || ''}, ${p.fname || ''} ${p.mname ? p.mname.charAt(0)+'.' : ''}`.replace(/^,|,$/g, '').trim() : '';
+      const safeLower = (value) => String(value || "").toLowerCase();
+
+      const saveLastPatientId = (id) => {
+        currentLoadedPatientId = Number(id || 0);
+        try { localStorage.setItem("lastPatientId", String(currentLoadedPatientId || "")); } catch (e) {}
+      };
+      const getLastPatientId = () => { try { return Number(localStorage.getItem("lastPatientId") || "0"); } catch (e) { return 0; } };
+
+      const COLL = { patients: "patients", appts: "appts", visits: "visits", files: "files" };
+      let canOpenChargeSlipPos = false;
+
+      async function fetchCollection(col) {
+        return (await db.collection(col).get()).docs.map(doc => {
+          const data = doc.data() || {};
+          if (data.id == null) data.id = isNaN(+doc.id) ? doc.id : +doc.id;
+          return data;
+        });
+      }
+
+      async function configurePosAccess() {
+        canOpenChargeSlipPos = await (window.OMSAuth?.hasModuleAccess?.("chargeSlipPos") || Promise.resolve(true));
+        const posTab = el("posTab");
+        const posSection = el("pos");
+        const posFrame = el("posFrame");
+        if (!canOpenChargeSlipPos) {
+          posTab?.classList.add("hidden");
+          posSection?.classList.add("hidden");
+          if (posFrame) {
+            posFrame.src = "about:blank";
+            posFrame.dataset.currentSrc = "blank";
+          }
+        } else {
+          posTab?.classList.remove("hidden");
+        }
+      }
+
+      // ==========================================
+      // FETCH DOCTORS FROM FIREBASE ADMIN SETTINGS
+      // ==========================================
+      async function loadDoctors() {
+          try {
+              const docRef = await db.collection("settings").doc("clinic").get();
+              let doctorsList = [];
+
+              if (docRef.exists && docRef.data().physicians) {
+                  doctorsList = docRef.data().physicians;
+              } else {
+                  doctorsList = (window.OMS_CONFIG && window.OMS_CONFIG.physicians) || ["Attending Physician"];
+              }
+
+              let docsHtml = '';
+              let filterHtml = '<option value="ALL">All Doctors</option>';
+
+              doctorsList.forEach(name => {
+                  docsHtml += `<option value="${name}">${name}</option>`;
+                  filterHtml += `<option value="${name}">${name}</option>`;
+              });
+
+              if (el("p_physician")) el("p_physician").insertAdjacentHTML('beforeend', docsHtml);
+              if (el("a_physician")) el("a_physician").insertAdjacentHTML('beforeend', docsHtml);
+              if (el("c_physician")) el("c_physician").insertAdjacentHTML('beforeend', docsHtml);
+              if (el("a_filter_doctor")) el("a_filter_doctor").innerHTML = filterHtml;
+              if (el("visitFilterPhysician")) {
+                el("visitFilterPhysician").innerHTML = '<option value="">All physicians</option>' + docsHtml;
+              }
+
+          } catch (e) { console.error("Error loading doctors:", e); }
+      }
+
+      // ==========================================
+      // SYNCHRONOUS UI MASTER LOCK
+      // ==========================================
+      function syncGlobalUI(patId) {
+          currentLoadedPatientId = Number(patId) || 0;
+          saveLastPatientId(currentLoadedPatientId);
+          const idStr = String(currentLoadedPatientId);
+
+          // 1. Sync all patient dropdowns instantly
+          if (el("a_patient") && el("a_patient").value !== idStr) el("a_patient").value = idStr;
+          if (el("c_patient") && el("c_patient").value !== idStr) el("c_patient").value = idStr;
+          if (el("p_upload_patient") && el("p_upload_patient").value !== idStr) el("p_upload_patient").value = idStr;
+
+          // If no patient is selected, clear and unlock everything
+          if (!currentLoadedPatientId) {
+              if (el("a_physician")) { el("a_physician").value = ""; el("a_physician").disabled = false; el("a_physician").style.backgroundColor = "#f8fafc"; }
+              if (el("c_physician")) { el("c_physician").value = ""; el("c_physician").disabled = false; el("c_physician").style.backgroundColor = "#f8fafc"; }
+              if (!editingApptId && el("a_reason")) el("a_reason").value = "";
+              if (!editingVisitId && el("c_cc")) el("c_cc").value = "";
+              renderPatientFiles(0);
+              return;
+          }
+
+          // 2. Fetch directly from zero-latency memory cache
+          const pat = window.cachedPatients?.find(p => Number(p.id) === currentLoadedPatientId) || {};
+          const primaryDoc = pat.physician || "";
+          const primaryNotes = pat.notes || "";
+
+          const vDate = el("c_date")?.value || getTodayISO();
+          const todayAppt = window.cachedAppts?.find(a => Number(a.patientId) === currentLoadedPatientId && a.date === vDate);
+
+          // 3. Force-Lock Appointments Tab
+          if (!editingApptId) {
+              const aPhys = el("a_physician");
+              if (aPhys) {
+                  if (primaryDoc) {
+                      aPhys.value = primaryDoc;
+                      aPhys.disabled = true;
+                      aPhys.style.backgroundColor = "#e2e8f0";
+                  } else {
+                      aPhys.disabled = false;
+                      aPhys.style.backgroundColor = "#f8fafc";
+                  }
+              }
+              const aRea = el("a_reason");
+              if (aRea && !aRea.value) aRea.value = primaryNotes;
+          }
+
+          // 4. Force-Lock Consultation Tab
+          if (!editingVisitId) {
+              const cPhys = el("c_physician");
+              const targetDoc = (todayAppt && todayAppt.physician) ? todayAppt.physician : primaryDoc;
+
+              if (cPhys) {
+                  if (targetDoc) {
+                      cPhys.value = targetDoc;
+                      cPhys.disabled = true;
+                      cPhys.style.backgroundColor = "#e2e8f0";
+                  } else {
+                      cPhys.disabled = false;
+                      cPhys.style.backgroundColor = "#f8fafc";
+                  }
+              }
+              const cCC = el("c_cc");
+              if (cCC && !cCC.value) cCC.value = (todayAppt && todayAppt.reason) ? todayAppt.reason : primaryNotes;
+          }
+
+          renderPatientFiles(currentLoadedPatientId);
+
+          // STRICT FIX: The POS link is NO LONGER loaded in the background!
+          // Doing so caused a race condition inside the hidden iframe.
+      }
+
+      // Listeners for dropdown changes to trigger instant memory sync
+      el("a_patient")?.addEventListener("change", (e) => {
+          if (!editingApptId && el("a_reason")) el("a_reason").value = "";
+          syncGlobalUI(e.target.value);
+      });
+      el("c_patient")?.addEventListener("change", (e) => {
+          if (!editingVisitId && el("c_cc")) el("c_cc").value = "";
+          syncGlobalUI(e.target.value);
+      });
+      el("p_upload_patient")?.addEventListener("change", (e) => syncGlobalUI(e.target.value));
+      el("c_date")?.addEventListener("change", () => syncGlobalUI(currentLoadedPatientId));
+
+      // ==========================================
+      // MODULE: PATIENT FILES & ATTACHMENTS
+      // ==========================================
+      async function renderPatientFiles(patId) {
+          const pList = el("p_filelist");
+          const cList = el("c_filelist");
+          if (pList) pList.innerHTML = "Loading files...";
+          if (cList) cList.innerHTML = "Loading files...";
+
+          if (!patId) {
+              if (pList) pList.innerHTML = '<span class="muted">No patient selected.</span>';
+              if (cList) cList.innerHTML = '<span class="muted">No patient selected.</span>';
+              return;
+          }
+
+          try {
+              const snap = await db.collection(COLL.files).where("patientId", "==", Number(patId)).get();
+              let html = "";
+
+              if (snap.empty) {
+                  html = '<span class="muted">No files uploaded for this patient.</span>';
+              } else {
+                  snap.forEach(doc => {
+                      const f = doc.data();
+                      html += `
+                      <div class="file-row">
+                          <a href="${f.url}" target="_blank" style="color:var(--brand); font-weight:600; text-decoration:none;">📄 ${f.name}</a>
+                          <button class="btn danger btn-sm" data-delete-file="${doc.id}" data-file-url="${f.url}">Delete</button>
+                      </div>`;
+                  });
+              }
+
+              if (pList) pList.innerHTML = html;
+              if (cList) cList.innerHTML = html;
+
+              document.querySelectorAll('[data-delete-file]').forEach(btn => {
+                  btn.addEventListener('click', async (e) => {
+                      if (!confirm("Permanently delete this file? This cannot be undone.")) return;
+                      const docId = e.target.getAttribute('data-delete-file');
+                      const fileUrl = e.target.getAttribute('data-file-url');
+
+                      try {
+                          e.target.textContent = "Deleting...";
+                          await storage.refFromURL(fileUrl).delete();
+                          await db.collection(COLL.files).doc(docId).delete();
+                          renderPatientFiles(patId);
+                      } catch (err) {
+                          alert("Error deleting file.");
+                          renderPatientFiles(patId);
+                      }
+                  });
+              });
+          } catch (err) {
+              if (pList) pList.innerHTML = '<span class="muted" style="color:red;">Error loading files.</span>';
+          }
+      }
+
+      el("btnUploadFiles")?.addEventListener("click", async () => {
+          const patId = el("p_upload_patient").value;
+          const fileInput = el("p_files");
+          const btn = el("btnUploadFiles");
+
+          if (!patId) return alert("Select a patient.");
+          if (fileInput.files.length === 0) return alert("Choose a file.");
+
+          btn.disabled = true;
+          const originalText = btn.textContent;
+          btn.textContent = "Uploading... Please wait";
+
+          try {
+              for (const file of fileInput.files) {
+                  const storagePath = `patients/${patId}/${Date.now()}_${file.name}`;
+                  const snapshot = await storage.ref(storagePath).put(file);
+                  const downloadURL = await snapshot.ref.getDownloadURL();
+
+                  await db.collection(COLL.files).add({
+                      patientId: Number(patId), name: file.name, url: downloadURL, path: storagePath, uploadedAt: Date.now()
+                  });
+              }
+              fileInput.value = "";
+              alert("Files uploaded!");
+              renderPatientFiles(patId);
+          } catch (error) {
+              alert("Upload failed.");
+          } finally {
+              btn.disabled = false;
+              btn.textContent = originalText;
+          }
+      });
+
+      el("btnRefreshAttachments")?.addEventListener("click", () => renderPatientFiles(el("c_patient").value));
+
+
+      // ==========================================
+      // MODULE: PATIENTS
+      // ==========================================
+      async function loadPatientsTable() {
+        const searchQ = el("p_search").value?.toLowerCase().trim() || "";
+        const tbody = document.querySelector("#tblPatients tbody");
+        if(tbody) tbody.innerHTML = "<tr><td colspan='7'>Loading...</td></tr>";
+
+        const allPatients = (await fetchCollection(COLL.patients))
+          .filter(p => !searchQ || JSON.stringify(p).toLowerCase().includes(searchQ))
+          .sort((a, b) => (a.lname || "").localeCompare(b.lname || ""));
+
+        window.cachedPatients = allPatients; // Update the zero-latency memory cache
+
+        if(tbody) tbody.innerHTML = "";
+        allPatients.forEach(p => {
+          const tr = document.createElement("tr");
+          const docBadge = p.physician ? `<span class="pill" style="background:#e0f2fe;color:#0284c7;">${p.physician}</span>` : '—';
+
+          tr.innerHTML = `<td>${p.id}</td><td style="font-weight:600;">${formatName(p)}</td><td>${docBadge}</td><td>${p.age||""}</td><td>${p.sex||""}</td><td>${p.phone||""}</td>`;
+          tr.addEventListener("click", () => {
+            populatePatientForm(p);
+            syncGlobalUI(p.id);
+          });
+
+          const tdAct = document.createElement("td");
+          const btnEdit = document.createElement("button");
+          btnEdit.className = "btn btn-sm"; btnEdit.textContent = "Edit";
+          btnEdit.addEventListener("click", (e) => { e.stopPropagation(); populatePatientForm(p); syncGlobalUI(p.id); });
+
+          const btnDel = document.createElement("button");
+          btnDel.className = "btn btn-sm danger"; btnDel.textContent = "Del";
+          btnDel.style.marginLeft = "4px";
+          btnDel.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (confirm("Delete this patient?")) {
+              await db.collection(COLL.patients).doc(String(p.id)).delete();
+              if (Number(el("p_id").value || 0) === p.id) { clearPatientForm(); syncGlobalUI(0); }
+              await loadPatientsTable();
+            }
+          });
+
+          tdAct.appendChild(btnEdit); tdAct.appendChild(btnDel);
+          tr.appendChild(tdAct);
+          if(tbody) tbody.appendChild(tr);
+        });
+
+        populatePatientDropdowns(allPatients);
+        if (currentLoadedPatientId) {
+          const loadedP = allPatients.find(x => Number(x.id) === currentLoadedPatientId);
+          setLabel("pf_for", formatName(loadedP), currentLoadedPatientId);
+        }
+      }
+
+      function populatePatientForm(p) {
+        el("p_id").value = p.id || "";
+        el("p_regdate").value = p.regdate || getTodayISO();
+        el("p_physician").value = p.physician || "";
+        el("p_phone").value = p.phone || "";
+        el("p_lname").value = p.lname || "";
+        el("p_fname").value = p.fname || "";
+        el("p_mname").value = p.mname || "";
+        el("p_age").value = p.age || "";
+        el("p_sex").value = p.sex || "";
+        el("p_addr").value = p.addr || "";
+        el("p_is_senior").checked = !!p.isSenior;
+        el("p_senior_id").value = p.seniorId || "";
+        el("p_is_pwd").checked = !!p.isPwd;
+        el("p_pwd_id").value = p.pwdId || "";
+        el("p_notes").value = p.notes || "";
+        el("p_upload_patient").value = String(p.id || "");
+        setLabel("pf_for", formatName(p), p.id);
+      }
+
+      function clearPatientForm() {
+        ["p_id", "p_physician", "p_phone", "p_lname", "p_fname", "p_mname", "p_age", "p_sex", "p_addr", "p_senior_id", "p_pwd_id", "p_notes"].forEach(id => {
+          if (el(id)) el(id).value = "";
+        });
+        if (el("p_is_senior")) el("p_is_senior").checked = false;
+        if (el("p_is_pwd")) el("p_is_pwd").checked = false;
+        el("p_regdate").value = getTodayISO();
+        setLabel("pf_for");
+      }
+
+      function populatePatientDropdowns(arr) {
+        const options = '<option value="">-- Select Patient --</option>' + arr.map(p => `<option value="${p.id}">${formatName(p) || "(unnamed)"}</option>`).join("");
+
+        if(el("a_patient")) el("a_patient").innerHTML = options;
+        if(el("c_patient")) el("c_patient").innerHTML = options;
+        if(el("p_upload_patient")) el("p_upload_patient").innerHTML = options;
+
+        if (currentLoadedPatientId) {
+          const idStr = String(currentLoadedPatientId);
+          if(el("a_patient")) el("a_patient").value = idStr;
+          if(el("c_patient")) el("c_patient").value = idStr;
+          if(el("p_upload_patient")) el("p_upload_patient").value = idStr;
+        }
+      }
+
+      el("p_search")?.addEventListener("input", loadPatientsTable);
+      el("btnNewPatient")?.addEventListener("click", () => { clearPatientForm(); syncGlobalUI(0); });
+
+      el("btnSavePatient")?.addEventListener("click", async () => {
+        const payload = {
+          regdate: el("p_regdate").value || getTodayISO(),
+          physician: el("p_physician").value,
+          phone: el("p_phone").value.trim(),
+          lname: el("p_lname").value.trim(),
+          fname: el("p_fname").value.trim(),
+          mname: el("p_mname").value.trim(),
+          age: Number(el("p_age").value || 0),
+          sex: el("p_sex").value,
+          addr: el("p_addr").value.trim(),
+          isSenior: el("p_is_senior").checked,
+          seniorId: el("p_senior_id").value.trim(),
+          isPwd: el("p_is_pwd").checked,
+          pwdId: el("p_pwd_id").value.trim(),
+          notes: el("p_notes").value.trim()
+        };
+        if (!payload.lname || !payload.fname) return alert("Last and First name are required.");
+        if (payload.isSenior && !payload.seniorId) return alert("Senior Citizen Valid ID No. is required.");
+        if (payload.isPwd && !payload.pwdId) return alert("PWD Valid ID No. is required.");
+
+        const existingId = el("p_id").value;
+        if (existingId) {
+          payload.id = Number(existingId);
+          await db.collection(COLL.patients).doc(String(payload.id)).set(payload, {merge: true});
+        } else {
+          payload.id = Date.now() + Math.floor(Math.random() * 1000);
+          await db.collection(COLL.patients).doc(String(payload.id)).set(payload);
+        }
+
+        // Wait for table to reload so dropdowns are physically updated
+        await loadPatientsTable();
+
+        // Force the instant lock
+        syncGlobalUI(payload.id);
+        populatePatientForm(payload);
+        alert("Patient saved successfully.");
+      });
+
+      // ==========================================
+      // MODULE: APPOINTMENTS
+      // ==========================================
+      if (typeof flatpickr !== "undefined") {
+          apptDatePicker = flatpickr("#a_date", {
+              mode: "multiple",
+              dateFormat: "Y-m-d",
+              defaultDate: [getTodayISO()],
+              onChange: function(selectedDates) {
+                  if(selectedDates.length > 0) {
+                      const nd = new Date(selectedDates[0]);
+                      nd.setDate(nd.getDate() + 21);
+                      if(el("a_next")) el("a_next").value = nd.toISOString().slice(0, 10);
+                  } else {
+                      if(el("a_next")) el("a_next").value = "";
+                  }
+              }
+          });
+      }
+
+      async function renderApptsTable() {
+          const tbody = document.querySelector("#tblAppt tbody");
+          if(!tbody) return;
+          tbody.innerHTML = "<tr><td colspan='8' style='padding:20px; text-align:center;'>Loading...</td></tr>";
+
+          try {
+              const snapAppt = await db.collection(COLL.appts).get();
+              let appts = snapAppt.docs.map(d => ({ id: d.id, ...d.data() }));
+
+              window.cachedAppts = appts; // Update the zero-latency memory cache
+
+              const snapPat = await db.collection(COLL.patients).get();
+              const patMap = {};
+              snapPat.docs.forEach(d => patMap[d.id] = d.data());
+
+              const filterType = el("a_filter_type").value;
+              const fDate = el("a_filter_date").value;
+              const fMonth = el("a_filter_month").value;
+              const fStart = el("a_filter_start").value;
+              const fEnd = el("a_filter_end").value;
+              const fDoc = el("a_filter_doctor").value;
+
+              appts = appts.filter(a => {
+                  if (!a.date) return false;
+                  if (fDoc !== "ALL" && a.physician !== fDoc) return false;
+                  if (filterType === "day") return fDate ? a.date === fDate : true;
+                  if (filterType === "month") return fMonth ? a.date.startsWith(fMonth) : true;
+                  if (filterType === "range") {
+                      if (!fStart || !fEnd) return true;
+                      return a.date >= fStart && a.date <= fEnd;
+                  }
+                  return true;
+              });
+
+              appts.sort((a, b) => {
+                  const dateCmp = (b.date || "").localeCompare(a.date || "");
+                  return dateCmp !== 0 ? dateCmp : (a.slot || "").localeCompare(b.slot || "");
+              });
+
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
+              const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+              tbody.innerHTML = "";
+              if (appts.length === 0) {
+                   tbody.innerHTML = "<tr><td colspan='8' style='padding:20px; text-align:center; color:#64748b;'>No appointments found.</td></tr>";
+                   return;
+              }
+
+              appts.forEach(a => {
+                  const pat = patMap[a.patientId];
+                  const patName = pat ? formatName(pat) : "ID " + a.patientId;
+                  const docBadge = a.physician ? `<span class="pill" style="background:#e0f2fe;color:#0284c7;">${a.physician}</span>` : '—';
+                  const badge = a.date === tomorrowStr ? '<span class="pill" style="background:#fee2e2;color:#991b1b;font-weight:bold;">Tomorrow</span>' : '—';
+                  const slotBadge = a.slot ? `<span class="pill" style="background:#dbeafe;color:#1e40af;font-weight:bold;">${a.slot}</span>` : '';
+
+                  const tr = document.createElement("tr");
+                  tr.innerHTML = `
+                      <td style="font-weight:600;">${a.date}</td>
+                      <td>${slotBadge}</td>
+                      <td>${patName}</td>
+                      <td>${docBadge}</td>
+                      <td><span class="pill" style="background:#f3f4f6;color:#374151;">${a.mode || 'Walk-in'}</span></td>
+                      <td>${a.reason || ''}</td>
+                      <td>${badge}</td>
+                  `;
+
+                  const tdAct = document.createElement("td");
+                  const btnEdit = document.createElement("button");
+                  btnEdit.className = "btn btn-sm";
+                  btnEdit.textContent = "Edit";
+                  btnEdit.onclick = async (e) => {
+                      e.stopPropagation();
+                      editingApptId = a.id;
+
+                      syncGlobalUI(a.patientId); // Lock the global UI first
+
+                      // Safely unlock dropdown for historical edits
+                      if (el("a_physician")) {
+                          el("a_physician").disabled = false;
+                          el("a_physician").style.backgroundColor = "#f8fafc";
+                          el("a_physician").value = a.physician || "";
+                      }
+
+                      el("a_slot").value = a.slot || "";
+                      el("a_mode").value = a.mode || "Walk-in";
+                      el("a_reason").value = a.reason || "";
+                      el("btnAddAppt").textContent = "Update Appointment";
+                      el("btnAddAppt").classList.add("primary");
+                      if (apptDatePicker) apptDatePicker.setDate(a.date);
+                  };
+
+                  const btnDel = document.createElement("button");
+                  btnDel.className = "btn btn-sm danger";
+                  btnDel.textContent = "Del";
+                  btnDel.style.marginLeft = "4px";
+                  btnDel.onclick = async (e) => {
+                      e.stopPropagation();
+                      if (confirm("Delete appointment?")) {
+                          await db.collection(COLL.appts).doc(String(a.id)).delete();
+                          await renderApptsTable();
+                      }
+                  };
+
+                  tdAct.appendChild(btnEdit);
+                  tdAct.appendChild(btnDel);
+                  tr.appendChild(tdAct);
+                  tbody.appendChild(tr);
+              });
+          } catch (e) { console.error("Filter Error:", e); }
+      }
+
+      el("a_filter_type")?.addEventListener("change", (e) => {
+          const val = e.target.value;
+          el("a_filter_date").classList.toggle("hidden", val !== "day");
+          el("a_filter_month").classList.toggle("hidden", val !== "month");
+          el("a_filter_range_wrap").classList.toggle("hidden", val !== "range");
+      });
+
+      el("btnApplyFilter")?.addEventListener("click", renderApptsTable);
+
+      el("btnApptAll")?.addEventListener("click", () => {
+          el("a_filter_type").value = "day";
+          el("a_filter_date").value = "";
+          el("a_filter_month").value = "";
+          el("a_filter_start").value = "";
+          el("a_filter_end").value = "";
+          el("a_filter_doctor").value = "ALL";
+          el("a_filter_type").dispatchEvent(new Event('change'));
+          renderApptsTable();
+      });
+
+      el("btnClearAppt")?.addEventListener("click", () => {
+          editingApptId = null;
+          el("btnAddAppt").textContent = "Add Appointment(s)";
+          el("a_slot").value = "";
+          el("a_reason").value = "";
+          el("a_mode").value = "Walk-in";
+          if (apptDatePicker) apptDatePicker.setDate([getTodayISO()]);
+
+          syncGlobalUI(currentLoadedPatientId); // Instantly restore defaults
+      });
+
+      el("btnAddAppt")?.addEventListener("click", async () => {
+          const patId = el("a_patient").value;
+          if (!patId) return alert("Select patient.");
+
+          const datesString = el("a_date").value;
+          if (!datesString) return alert("Select at least one date.");
+          const selectedDates = datesString.split(", ");
+
+          if (editingApptId) {
+              const payload = {
+                  patientId: Number(patId),
+                  physician: el("a_physician").value,
+                  date: selectedDates[0],
+                  slot: el("a_slot").value,
+                  mode: el("a_mode").value,
+                  reason: el("a_reason").value.trim(),
+                  created: Date.now()
+              };
+              await db.collection(COLL.appts).doc(String(editingApptId)).set(payload, { merge: true });
+              alert("Appointment Updated.");
+          } else {
+              for (const d of selectedDates) {
+                  const payload = {
+                      patientId: Number(patId),
+                      physician: el("a_physician").value,
+                      date: d,
+                      slot: el("a_slot").value,
+                      mode: el("a_mode").value,
+                      reason: el("a_reason").value.trim(),
+                      created: Date.now()
+                  };
+                  payload.id = Date.now() + Math.floor(Math.random() * 1000);
+                  await db.collection(COLL.appts).doc(String(payload.id)).set(payload);
+              }
+              alert(`Added ${selectedDates.length} appointment(s)!`);
+          }
+          el("btnClearAppt").click();
+          await renderApptsTable(); // Wait for cache update
+          syncGlobalUI(patId); // Force the lock
+      });
+
+      // ==========================================
+      // MODULE: CONSULTATIONS
+      // ==========================================
+      async function loadVisitsTable() {
+        const tbody = document.querySelector("#tblVisits tbody");
+        if (!tbody) return;
+        tbody.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>";
+
+        const visits = await fetchCollection(COLL.visits);
+        const pats = await fetchCollection(COLL.patients);
+        const pMap = new Map();
+        pats.forEach(p => {
+          pMap.set(p.id, p);
+          pMap.set(String(p.id), p);
+          const numericId = Number(p.id);
+          if (!Number.isNaN(numericId)) pMap.set(numericId, p);
+        });
+
+        const patientFilter = safeLower(el("visitFilterPatient")?.value || "").trim();
+        const dateFilter = el("visitFilterDate")?.value || "";
+        const physicianFilter = el("visitFilterPhysician")?.value || "";
+        const filteredVisits = visits.filter(v => {
+          const patientName = formatName(pMap.get(v.patientId) || null) || "ID " + (v.patientId ?? "");
+          const matchesPatient = !patientFilter || safeLower(patientName).includes(patientFilter);
+          const matchesDate = !dateFilter || v.date === dateFilter;
+          const matchesPhysician = !physicianFilter || v.physician === physicianFilter;
+          return matchesPatient && matchesDate && matchesPhysician;
+        });
+
+        filteredVisits.sort((a, b) => {
+          const d1 = a.date || "", d2 = b.date || "";
+          if (d2 !== d1) return d2.localeCompare(d1);
+          return (b.created || 0) - (a.created || 0);
+        });
+
+        tbody.innerHTML = "";
+        if (!filteredVisits.length) {
+          tbody.innerHTML = "<tr><td colspan='8'>No consultations match the selected filters.</td></tr>";
+        }
+        if (el("visitFilterCount")) {
+          el("visitFilterCount").textContent = `${filteredVisits.length} of ${visits.length} consultation${visits.length === 1 ? "" : "s"}`;
+        }
+        filteredVisits.forEach(v => {
+          const name = formatName(pMap.get(v.patientId) || null) || "ID " + (v.patientId ?? "");
+          const docBadge = v.physician ? `<span class="pill" style="background:#e0f2fe;color:#0284c7;">${v.physician}</span>` : '—';
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td style="font-weight:600;">${v.date || ""}</td><td>${name}</td><td>${docBadge}</td><td>${v.cc || ""}</td><td>${v.exam || ""}</td><td>${v.dx || ""}</td><td>${v.plan || ""}</td>`;
+
+          const tdAct = document.createElement("td");
+          const btnEdit = document.createElement("button");
+          btnEdit.className = "btn btn-sm";
+          btnEdit.textContent = "Edit";
+          btnEdit.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            editingVisitId = v.id;
+
+            syncGlobalUI(v.patientId); // Lock UI first
+
+            if (el("c_physician")) {
+                el("c_physician").disabled = false;
+                el("c_physician").style.backgroundColor = "#f8fafc";
+                el("c_physician").value = v.physician || ""; // Overlay historical doctor
+            }
+
+            if (el("c_date")) el("c_date").value = v.date || getTodayISO();
+            if (el("c_cc")) el("c_cc").value = v.cc || "";
+            if (el("c_exam")) el("c_exam").value = v.exam || "";
+            if (el("c_dx")) el("c_dx").value = v.dx || "";
+            if (el("c_plan")) el("c_plan").value = v.plan || "";
+            if (el("c_remarks")) el("c_remarks").value = v.remarks || "";
+            const btnSave = el("btnSaveConsult");
+            if (btnSave) { btnSave.textContent = "Update Visit"; btnSave.classList.add("primary"); }
+          });
+
+          const btnDel = document.createElement("button");
+          btnDel.className = "btn btn-sm danger"; btnDel.textContent = "Del";
+          btnDel.style.marginLeft = "4px";
+          btnDel.addEventListener("click", async e => {
+            e.stopPropagation();
+            if (confirm("Delete this consultation?")) {
+              await db.collection(COLL.visits).doc(String(v.id)).delete();
+              await loadVisitsTable();
+            }
+          });
+
+          tdAct.appendChild(btnEdit); tdAct.appendChild(btnDel);
+          tr.appendChild(tdAct);
+          tbody.appendChild(tr);
+        });
+      }
+
+      el("btnSaveConsult")?.addEventListener("click", async () => {
+        const id = Number(el("c_patient").value || 0);
+        if (!id) return alert("Select a patient.");
+        const payload = {
+          patientId: id,
+          physician: el("c_physician").value,
+          date: el("c_date").value || getTodayISO(),
+          cc: el("c_cc").value.trim(),
+          exam: el("c_exam").value.trim(),
+          dx: el("c_dx").value.trim(),
+          plan: el("c_plan").value.trim(),
+          remarks: el("c_remarks").value.trim(),
+          created: Date.now()
+        };
+
+        if (editingVisitId) {
+            payload.id = editingVisitId;
+            await db.collection(COLL.visits).doc(String(editingVisitId)).set(payload, {merge: true});
+            alert("Visit Updated.");
+        } else {
+            payload.id = Date.now();
+            await db.collection(COLL.visits).doc(String(payload.id)).set(payload);
+            alert("New Visit Saved.");
+        }
+
+        el("btnClearConsult").click();
+        await loadVisitsTable();
+      });
+
+      el("btnClearConsult")?.addEventListener("click", () => {
+        editingVisitId = null;
+        const btn = el("btnSaveConsult");
+        if(btn) { btn.textContent = "Save Visit"; btn.classList.add("primary"); }
+        ["c_cc", "c_exam", "c_dx", "c_plan", "c_remarks"].forEach(id => { if(el(id)) el(id).value = ""; });
+
+        syncGlobalUI(currentLoadedPatientId); // Instantly restore locks
+      });
+
+      el("visitFilterPatient")?.addEventListener("input", loadVisitsTable);
+      el("visitFilterDate")?.addEventListener("change", loadVisitsTable);
+      el("visitFilterPhysician")?.addEventListener("change", loadVisitsTable);
+      el("btnClearVisitFilters")?.addEventListener("click", () => {
+        if (el("visitFilterPatient")) el("visitFilterPatient").value = "";
+        if (el("visitFilterDate")) el("visitFilterDate").value = "";
+        if (el("visitFilterPhysician")) el("visitFilterPhysician").value = "";
+        loadVisitsTable();
+      });
+
+      // TAB NAVIGATION (Enforces zero-latency locks)
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", async () => {
+          const tabId = tab.dataset.tab;
+          if (tabId === "pos" && !canOpenChargeSlipPos) {
+            alert("This account does not have access to Charge Slip / POS.");
+            return;
+          }
+          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+          document.querySelectorAll("section.card").forEach(t => t.classList.add("hidden"));
+          if(el(tabId)) el(tabId).classList.remove("hidden");
+
+          if (tabId === "patients") await loadPatientsTable();
+          if (tabId === "appts") await renderApptsTable();
+          if (tabId === "consult") await loadVisitsTable();
+
+          // Force a synchronous lock every single time a tab is opened
+          syncGlobalUI(currentLoadedPatientId);
+
+          // POS TAB FAILSAFE: Pure Lazy-Loading. Iframe ONLY loads when explicitly clicked and visible.
+          if (tabId === "pos") {
+            if (!canOpenChargeSlipPos) return;
+            const iframe = el("posFrame");
+            if (!iframe) return;
+
+            let pname = "";
+            let dname = el("c_physician")?.value || "";
+
+            const pSel = el("c_patient");
+            if (pSel && pSel.value) {
+                pname = pSel.options[pSel.selectedIndex].textContent.trim();
+
+                if (!dname) {
+                    const pat = window.cachedPatients?.find(p => Number(p.id) === Number(pSel.value));
+                    if (pat) dname = pat.physician || "";
+                }
+
+                // Construct the exact clean URL the POS module knows how to parse.
+                const rawUrl = `../charge-slip/index.html?patient=${encodeURIComponent(pname)}&doctor=${encodeURIComponent(dname)}`;
+                const url = window.withTenantParams ? window.withTenantParams(rawUrl) : rawUrl;
+
+                // Set the URL only if it changed, to prevent wiping out a POS you already started filling out
+                if (iframe.dataset.currentSrc !== url) {
+                    iframe.dataset.currentSrc = url;
+                    iframe.src = url;
+                }
+            } else {
+                if (iframe.dataset.currentSrc !== "blank") {
+                    iframe.dataset.currentSrc = "blank";
+                    const rawUrl = "../charge-slip/index.html";
+                    iframe.src = window.withTenantParams ? window.withTenantParams(rawUrl) : rawUrl;
+                }
+            }
+          }
+        });
+      });
+
+      // BOOT SEQUENCE
+      (async function init() {
+        await configurePosAccess();
+        if(el("p_regdate")) el("p_regdate").value = getTodayISO();
+        if(el("c_date")) el("c_date").value = getTodayISO();
+
+        await loadDoctors();
+        currentLoadedPatientId = getLastPatientId() || 0;
+
+        // Cache data upfront to guarantee zero latency
+        await loadPatientsTable();
+        await renderApptsTable();
+
+        if (currentLoadedPatientId) {
+            syncGlobalUI(currentLoadedPatientId);
+        }
+      })();
+
+    });
+  </script>
+</body>
+</html>

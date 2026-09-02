@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Inventory • LEADSERVE OMS</title>
+    <link rel="stylesheet" href="../../assets/style.css">
+    <link rel="icon" href="../../assets/logo.png">
+
+    <script src="../../config.js"></script>
+
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script defer src="../../assets/leadserve-firestore.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <script defer>
+        window.addEventListener('load', () => {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(window.OMS_CONFIG.firebase);
+            }
+        });
+    </script>
+
+    <script defer src="../../assets/auth-guard.js?v=20260712-pos-access2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script defer src="../../assets/header.js"></script>
+
+    <style>
+        /* ========================= Apple-style UI & Clean Table ========================= */
+        :root{ --bg:#f5f5f7; --card:#ffffff; --text:#111827; --muted:#6b7280; --hairline: rgba(17,24,39,.10); --hairline2: rgba(17,24,39,.14); --shadow: 0 8px 24px rgba(0,0,0,.08); --shadow2: 0 4px 14px rgba(0,0,0,.08); --radius: 18px; --radius2: 14px; --blue:#0a84ff; --blue2:#007aff; --danger:#ff3b30; --ok:#34c759; --hover: rgba(10,132,255,.08); --zebra: rgba(17,24,39,.02); --highlight: rgba(52, 199, 89, 0.08); }
+        html,body{ background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial; -webkit-font-smoothing:antialiased; margin: 0; padding: 0; }
+
+        /* Layout */
+        .wrap{ max-width:1200px; margin:18px auto; padding:0 16px 40px; }
+        h1{ margin: 6px 0 10px; font-size:34px; letter-spacing:-.6px; }
+        .muted{ color:var(--muted); }
+        .card{ background:var(--card); border:1px solid var(--hairline); border-radius:var(--radius); box-shadow:var(--shadow2); padding:16px; }
+        .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+
+        /* Tabs - STRICT OVERRIDES TO PREVENT GHOST BUTTONS */
+        .seg{ display:flex; gap:6px; padding:6px; background:rgba(255,255,255,.72); border:1px solid var(--hairline); border-radius:999px; overflow:auto; }
+        .seg button{ border:0 !important; background:transparent !important; color:#6b7280 !important; padding:10px 14px; border-radius:999px; font-weight:800; font-size:13px; cursor:pointer; white-space:nowrap; transition: all 0.2s ease;}
+        .seg button:hover{ background:rgba(17,24,39,.04) !important; color:#111827 !important; }
+        .seg button.active{ background:#E5F1FF !important; color:#0056B3 !important; box-shadow:0 2px 8px rgba(0, 113, 227, 0.15) !important; border:1px solid #0071E3 !important; font-weight:700 !important; }
+
+        /* Actions - STRICT OVERRIDES TO PREVENT GHOST BUTTONS */
+        .actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .pill{ border:1px solid var(--hairline2) !important; background:#ffffff !important; color:#111827 !important; padding:10px 14px; border-radius:999px; font-weight:800; font-size:13px; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.06) !important; transition: all 0.2s ease;}
+        .pill:hover{ background:#f3f4f6 !important; }
+        .pill.primary{ border:none !important; background:#0a84ff !important; color:#ffffff !important; box-shadow:0 4px 12px rgba(10,132,255,.3) !important; }
+        .pill.primary:hover{ background:#007aff !important; }
+        .pill.danger{ border:none !important; background:#ff3b30 !important; color:#ffffff !important; box-shadow:0 4px 12px rgba(255,59,48,.3) !important; }
+
+        .badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid var(--hairline); background:rgba(255,255,255,.78); font-size:12px; font-weight:800; color:#111827; }
+
+        /* Fixed Grid to Flexbox Layout */
+        .grid { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+        #itemForm { width: 100%; box-sizing: border-box; }
+        .tableCard { flex: 1; min-width: 0; width: 100%; }
+        @media (min-width: 980px) { .grid { flex-direction: row; align-items: flex-start; } #itemForm { width: 380px; flex-shrink: 0; } }
+
+        /* Form */
+        label{ font-size:12px; font-weight:800; color:#374151; text-transform:uppercase; letter-spacing:.06em; }
+        input, select, textarea{ width:100%; border:1px solid var(--hairline); border-radius:12px; padding:10px 12px; background:rgba(255,255,255,.94); outline:none; font-size:13px; box-sizing:border-box; color:#111827; }
+        input:focus{ border-color: rgba(10,132,255,.55); box-shadow: 0 0 0 4px rgba(10,132,255,.16); }
+        .formRow{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:10px; }
+        .formRow3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-bottom:10px; }
+
+        /* Table */
+        .tableCard{ padding:0; overflow:hidden; }
+        .tableTop{ padding:14px 16px 10px; border-bottom: 1px solid rgba(17,24,39,.06); }
+        .tableWrap{ background:var(--card); overflow-x:auto; border-top:1px solid rgba(17,24,39,.04); }
+        table{ width:100%; border-collapse:separate; border-spacing:0; min-width: 800px; }
+        thead th{ position:sticky; top:0; background:rgba(245,245,247,.95); backdrop-filter: blur(10px); border-bottom:1px solid var(--hairline); padding:12px 14px; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; color:#374151; z-index:2; white-space:nowrap; text-align:left; }
+        tbody td{ padding:12px 14px; font-size:13px; border-bottom:1px solid rgba(17,24,39,.06); vertical-align:middle; color:#111827; }
+        tbody tr:nth-child(even) td{ background: var(--zebra); }
+        tbody tr:hover td{ background: var(--hover); cursor:pointer; }
+        .col-desc{ max-width: 250px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
+        .sku{ font-weight:900; color:var(--muted); font-size:12px; }
+        .num{ text-align:right; font-variant-numeric: tabular-nums; }
+        .tdActions{ white-space:nowrap; text-align:right; }
+        th.col-closing, td.col-closing { background: var(--highlight); font-weight: 800; color: #111827; }
+        tbody tr:nth-child(even) td.col-closing { background: rgba(52, 199, 89, 0.12); }
+
+        /* Empty state */
+        .emptyState{ padding: 44px 16px; text-align:center; color: var(--muted); }
+        .emptyState h3{ margin:0; font-size:16px; color:#111827; }
+        .emptyState p{ margin:8px auto 16px; max-width: 460px; font-size:13px; }
+
+        /* Format Guide */
+        .formatGuide { padding: 14px 16px; background: rgba(10,132,255,.05); border-top: 1px solid var(--hairline); font-size: 12px; color: #374151; }
+        .formatGuide code { background: rgba(17,24,39,.05); padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+
+        /* Toast */
+        .toast{ position:fixed; right:16px; bottom:16px; max-width: 360px; background:#111827; color:#fff; padding:12px 14px; border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.25); display:none; z-index:9999; font-size:13px; }
+    </style>
+</head>
+<body>
+
+    <msn-header></msn-header>
+
+    <div class="wrap">
+        <h1>Inventory Management</h1>
+        <div class="muted">Live, persistent inventory tracking in Firebase. Track your Opening, Incoming, and Closing balances per category.</div>
+        <div class="card" style="margin-top:14px;">
+            <div class="row" style="gap:12px;">
+                <div class="seg" id="invTabs"></div>
+                <div class="actions">
+                    <label class="pill" style="display:inline-flex; gap:8px; align-items:center; margin:0;"> Import Excel <input type="file" id="fileImport" accept=".xlsx,.xls,.csv" style="display:none;"></label>
+                    <button class="pill" id="btnExport">Export Excel</button>
+                    <button class="pill primary" id="btnNew">New Item</button>
+                </div>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                <span class="badge" id="badgeCategory">Category: —</span>
+                <span class="badge" id="badgeCount">Items: 0</span>
+                <span class="badge" id="badgeStatus">Status: Connecting to Firebase...</span>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card" id="itemForm" style="display:none; align-self: start;">
+                <div class="row" style="margin-bottom: 14px;">
+                    <h3 style="margin:0; font-size:18px;">Item Details</h3>
+                    <button class="pill" id="btnCloseForm" style="padding:6px 12px; font-size:11px;">Close</button>
+                </div>
+                <div class="formRow">
+                    <div><label>SKU *</label><input id="f_sku" placeholder="e.g., MED-123"></div>
+                    <div><label>UOM</label><input id="f_uom" placeholder="pcs, box, btl"></div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <label>Description *</label><input id="f_desc" placeholder="e.g., Tobramycin eye drops 5ml">
+                </div>
+                <div class="formRow">
+                    <div><label>Brand</label><input id="f_brand" placeholder="Brand"></div>
+                    <div><label>Supplier</label><input id="f_supplier" placeholder="Supplier"></div>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--hairline); margin:16px 0;">
+                <h4 style="margin:0 0 10px 0; font-size:14px; color:var(--blue2);">Inventory Movement</h4>
+                <div class="formRow3">
+                    <div><label>Opening</label><input id="f_opening" type="number" step="1" placeholder="0"></div>
+                    <div><label>Incoming</label><input id="f_incoming" type="number" step="1" placeholder="0"></div>
+                    <div><label>Adjust (+/-)</label><input id="f_adjust" type="number" step="1" placeholder="0"></div>
+                </div>
+                <div class="formRow">
+                    <div><label>Issued/Used</label><input id="f_issued" type="number" step="1" placeholder="0"></div>
+                    <div><label>Sold</label><input id="f_sold" type="number" step="1" placeholder="0"></div>
+                </div>
+                <div class="formRow" style="margin-top: 10px;">
+                    <div></div>
+                    <div><label style="color:var(--ok);">Closing Balance (Auto)</label><input id="f_closing" type="number" style="font-weight:bold; background:#f0fdf4;" disabled placeholder="0"></div>
+                </div>
+                <hr style="border:0; border-top:1px solid var(--hairline); margin:16px 0;">
+                <div class="row" style="margin-top:16px;">
+                    <button class="pill danger" id="btnDelete">Delete</button>
+                    <div style="flex:1;"></div>
+                    <button class="pill" id="btnClear">Clear</button>
+                    <button class="pill primary" id="btnSave">Save to Firebase</button>
+                </div>
+            </div>
+
+            <div class="card tableCard">
+                <div class="tableTop">
+                    <div class="row">
+                        <h3 style="margin:0; font-size:18px;" id="tableTitle">Inventory List</h3>
+                        <div class="muted" style="font-size:12px;">Click any row to edit details</div>
+                    </div>
+                </div>
+                <div class="tableWrap">
+                    <table id="tblInventory">
+                        <thead>
+                            <tr>
+                                <th>SKU</th><th>Item Description</th><th class="num">Opening</th><th class="num" style="color:var(--blue2);">Incoming</th><th class="num">Issued</th><th class="num">Sold</th><th class="num">Adj.</th><th class="num col-closing">Closing</th><th class="tdActions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="9" class="muted" style="text-align:center;">Loading Firebase Data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="formatGuide">
+                    <strong>Prescribed Excel Format for Import:</strong> Ensure your top row uses these column headers: <br>
+                    <div style="margin-top: 6px;"><code>SKU</code><code>Description</code><code>Brand</code><code>Supplier</code><code>UOM</code><code>Opening</code><code>Incoming</code><code>Issued</code><code>Sold</code><code>Adjustments</code></div>
+                    <p style="margin: 6px 0 0 0; color: var(--muted);"><em>Note: <b>SKU</b> and <b>Description</b> are required. Missing numerical columns will safely default to 0. The app will automatically calculate the final Closing balance upon import.</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        !function(){const e=e=>document.getElementById(e),t=[{key:"medicines",label:"Medicines",col:"inventory_medicines"},{key:"eyeglasses",label:"Eyeglasses",col:"inventory_eyeglasses"},{key:"clinic_supplies",label:"Clinic Supplies",col:"inventory_clinic_supplies"},{key:"office_it",label:"Office & IT",col:"inventory_office_it"},{key:"surgical_supplies",label:"Surgical Supplies",col:"inventory_surgical_supplies"}];let n=t[0],i=[],s=null;const o=e("invTabs"),a=e("tblInventory").querySelector("tbody"),l=e("badgeCategory"),d=e("badgeCount"),r=e("badgeStatus"),c=e("itemForm"),u=e("fileImport"),p={sku:e("f_sku"),desc:e("f_desc"),brand:e("f_brand"),supplier:e("f_supplier"),uom:e("f_uom"),opening:e("f_opening"),incoming:e("f_incoming"),issued:e("f_issued"),sold:e("f_sold"),adjust:e("f_adjust"),closing:e("f_closing")};function m(e){const t=Number(e);return Number.isFinite(t)?t:0}function g(e){return m(e.opening)+m(e.incoming)-m(e.issued)-m(e.sold)+m(e.adjust)}function f(e){return String(e??"").replace(/[&<>"']/g,(e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[e])))}function v(t,n=!1){const i=e("toast");i.textContent=t,i.style.display="block",i.style.background=n?"#b42318":"#111827",setTimeout((()=>i.style.display="none"),3e3)}function b(e){r.textContent="Status: "+e}function y(){p.closing.value=g({opening:p.opening.value,incoming:p.incoming.value,issued:p.issued.value,sold:p.sold.value,adjust:p.adjust.value})}function k(e){p.sku.value=e.sku||"",p.desc.value=e.description||"",p.brand.value=e.brand||"",p.supplier.value=e.supplier||"",p.uom.value=e.uom||"",p.opening.value=0===e.opening?0:e.opening||"",p.incoming.value=0===e.incoming?0:e.incoming||"",p.issued.value=0===e.issued?0:e.issued||"",p.sold.value=0===e.sold?0:e.sold||"",p.adjust.value=0===e.adjust?0:e.adjust||"",y()}function h(){s=null,k({}),p.sku.disabled=!1,c.style.display="block",b("New item")}async function _(){b("Fetching from Firebase...");try{if(!firebase.apps.length)throw new Error("Firebase not initialized");const e=firebase.firestore(),t=await e.collection(n.col).get();let o=[];t.forEach((e=>{const t=e.data();o.push({__id:e.id,sku:t.sku||e.id,description:t.description||t.desc||"",brand:t.brand||"",supplier:t.supplier||"",uom:t.uom||"",opening:m(t.opening),incoming:m(t.incoming),issued:m(t.issued),sold:m(t.sold),adjust:m(t.adjust),closing:m(t.closing)})})),o.sort(((e,t)=>(e.description||"").localeCompare(t.description||"")||(e.sku||"").localeCompare(t.sku||""))),function(e){if(i=e,d.textContent="Items: "+e.length,!e.length)return C();a.innerHTML=e.map((e=>{const t=g(e);return`<tr data-row="${f(e.__id)}">\n <td><div class="sku">${f(e.sku)}</div><div style="font-size:11px; color:var(--muted);">${f(e.uom)}</div></td>\n <td class="col-desc">\n <div style="font-weight:600;">${f(e.description)}</div>\n ${e.brand?`<div style="font-size:11px; color:var(--muted);">Brand: ${f(e.brand)}</div>`:""}\n </td>\n <td class="num">${m(e.opening)}</td>\n <td class="num" style="color:var(--blue2); font-weight:600;">+${m(e.incoming)}</td>\n <td class="num">${m(e.issued)}</td>\n <td class="num">${m(e.sold)}</td>\n <td class="num">${m(e.adjust)}</td>\n <td class="num col-closing">${m(t)}</td>\n <td class="tdActions"><button class="pill" data-edit="${f(e.__id)}" style="padding:6px 12px; font-size:11px;">Edit</button></td>\n </tr>`})).join(""),a.querySelectorAll("tr[data-row]").forEach((e=>{e.addEventListener("click",(()=>{const t=e.getAttribute("data-row"),n=i.find((e=>e.__id===t));n&&(s=t,k(n),p.sku.disabled=!0,c.style.display="block",window.scrollTo({top:0,behavior:"smooth"}))}))}))}(o),b("Live Sync Active")}catch(e){b("Error loading data"),v("Failed to connect to Firebase.",!0),C()}}function S(e){return String(e||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"")}["opening","incoming","issued","sold","adjust"].forEach((e=>p[e].addEventListener("input",y)));const E={sku:["sku","itemcode","code"],description:["description","desc","item","name"],brand:["brand","maker","manufacturer"],supplier:["supplier","vendor"],uom:["uom","unit","units"],opening:["opening","openingbalance","beginning"],incoming:["incoming","received","in"],issued:["issued","used","out"],sold:["sold","soldqty"],adjust:["adjustments","adjust","adj"]};function w(e,t){const n=Object.keys(e||{}),i=new Set((E[t]||[]).map(S));for(const t of n)if(i.has(S(t)))return e[t]}function j(){o.innerHTML="",t.forEach((t=>{const i=document.createElement("button");i.textContent=t.label,i.className=t.key===n.key?"active":"",i.addEventListener("click",(()=>{n=t,s=null,c.style.display="none",l.textContent="Category: "+n.label,e("tableTitle").textContent=n.label+" Inventory",j(),_()})),o.appendChild(i)})),l.textContent="Category: "+n.label,e("tableTitle").textContent=n.label+" Inventory"}function C(){a.innerHTML=`<tr><td colspan="9">\n <div class="emptyState">\n <h3>No items in ${n.label}</h3>\n <p>Click "New Item" or "Import Excel" to start adding inventory to this database collection.</p>\n </div>\n </td></tr>`,d.textContent="Items: 0"}u.addEventListener("change",(e=>{const t=e.target.files&&e.target.files[0];if(!t)return;const i=new FileReader;i.onload=e=>{try{const t=new Uint8Array(e.target.result),i=XLSX.read(t,{type:"array"}),s=i.SheetNames[0];!async function(e){if(!e||!e.length)return v("No data found in Excel sheet.",!0);b("Importing to Firebase...");let t=0,i=0;const s=firebase.firestore();for(const o of e)try{const e=String(w(o,"sku")??"").trim(),a=String(w(o,"description")??"").trim();if(!e||!a){i++;continue}const l={sku:e,description:a,brand:String(w(o,"brand")??"").trim(),supplier:String(w(o,"supplier")??"").trim(),uom:String(w(o,"uom")??"").trim(),opening:m(w(o,"opening")),incoming:m(w(o,"incoming")),issued:m(w(o,"issued")),sold:m(w(o,"sold")),adjust:m(w(o,"adjust")),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};l.closing=g(l),await s.collection(n.col).doc(e).set(l,{merge:!0}),t++}catch(e){}v(`Import Complete: ${t} added/updated, ${i} skipped.`),await _(),u.value=""}(XLSX.utils.sheet_to_json(i.Sheets[s],{defval:""}))}catch(e){v("Failed to parse Excel file.",!0),b("Error importing")}},i.readAsArrayBuffer(t)})),e("btnExport").addEventListener("click",(()=>{if(!i.length)return v("No items to export.",!0);const e=i.map((e=>({SKU:e.sku,Description:e.description,Brand:e.brand,Supplier:e.supplier,UOM:e.uom,Opening:e.opening,Incoming:e.incoming,Issued:e.issued,Sold:e.sold,Adjustments:e.adjust,"Closing Balance":e.closing})));try{const t=XLSX.utils.json_to_sheet(e),i=XLSX.utils.book_new();XLSX.utils.book_append_sheet(i,t,"Inventory"),XLSX.writeFile(i,`Inventory_${n.label.replace(/\s+/g,"_")}.xlsx`),v("Excel downloaded successfully.")}catch(e){v("Export failed.",!0)}})),e("btnNew").addEventListener("click",h),e("btnCloseForm").addEventListener("click",(()=>c.style.display="none")),e("btnClear").addEventListener("click",h),e("btnSave").addEventListener("click",(async function(){const e={sku:(p.sku.value||"").trim(),description:(p.desc.value||"").trim(),brand:(p.brand.value||"").trim(),supplier:(p.supplier.value||"").trim(),uom:(p.uom.value||"").trim(),opening:m(p.opening.value),incoming:m(p.incoming.value),issued:m(p.issued.value),sold:m(p.sold.value),adjust:m(p.adjust.value),closing:m(p.closing.value)};if(!e.sku||!e.description)return v("SKU and Description are required.",!0);b("Saving to Firebase...");try{const t=s||e.sku;e.updatedAt=firebase.firestore.FieldValue.serverTimestamp(),await firebase.firestore().collection(n.col).doc(t).set(e,{merge:!0}),v("Saved successfully"),c.style.display="none",await _()}catch(e){b("Error saving"),v("Could not save to database.",!0)}})),e("btnDelete").addEventListener("click",(async function(){if(!s)return v("Select an item first.",!0);if(confirm("Are you sure you want to delete this item permanently?")){b("Deleting...");try{await firebase.firestore().collection(n.col).doc(s).delete(),v("Item deleted."),c.style.display="none",await _()}catch(e){v("Could not delete from database.",!0)}}})),window.addEventListener("load",(()=>{j(),setTimeout(_,500)}))}();
+    </script>
+</body>
+</html>
