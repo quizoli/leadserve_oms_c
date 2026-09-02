@@ -26,17 +26,25 @@ baked in; add-on modules are **pluggable** — shown/hidden by the tenant's `mod
 - Wired physician dropdowns (charge-slip, consultation) to `OMS_CONFIG.physicians`.
 - Made landing tiles config-driven (`data-module` + gating script).
 
-## ROADMAP / next steps
-1. **Create a real `leadserve-oms-dev` Firebase project** (Singapore region) and paste its web-app
-   config into `config.js` → `DEMO_FIREBASE`. Required before the shell can run/demo.
-2. **Server-enforced entitlement (the key security work).** Current `firestore.rules` is
-   `allow read, write: if request.auth != null` — wide open. Replace with rules that enforce
-   per-tenant isolation and per-module access. Tile hiding + `auth-guard` are convenience only.
-3. **Gate module pages themselves** by `modules` (deep-link protection), not just the tiles.
-4. **Config-drive the letterheads:** `modules/reports/index.html` and `modules/prescription/index.html`
-   still render demo clinic name/address as static text — pull from `OMS_CONFIG`.
-5. **Review `modules/reports/index.html:129`** — a Laoag-region address heuristic
-   (`norte/laoag/batac/paoay`) leftover from LCELC; generalize or make config-driven.
-6. Verify `leadserve.html` (umbrella landing) branding and multi-tenant switching.
+## ROADMAP / status
+- [x] **Live Firebase project** — `leadserve-oms` (Firestore STANDARD, `asia-southeast1`), config wired.
+- [x] **Deployed** — https://leadserve-oms.web.app
+- [x] **Config-driven letterheads** — reports/prescription/registration/CF4 render the tenant's
+      identity via `applyClinicIdentity()` (`[data-clinic]` elements + reusable helper).
+- [x] **Deep-link module guard** — `config.js` `moduleGuard()` blocks disabled add-on pages by URL.
+- [x] **v2 server-enforced entitlement** — `firestore.rules` gates add-on collections by the
+      `settings/entitlement` doc (read-only to clients). Emulator tests: `npm run test:rules` (14/14).
+- [ ] **Activate enforcement** — create the `settings/entitlement` doc in the live project
+      (console or Admin SDK), e.g. `{ modules: { inventory:true, procurement:true, prescription:true,
+      reports:true, philhealth:false, hr:false } }`. Rules are fail-open until it exists.
+- [ ] **Single source of truth** — have `config.js` READ `settings/entitlement` from Firestore
+      instead of hardcoding `modules` (so tiles/guard and rules agree).
+- [ ] **Multi-tenant proof** — prove `tenantPath` mode serves two clinics with isolated data.
+- [ ] **Review `modules/reports/index.html:129`** — Laoag-region heuristic leftover from LCELC.
+- [ ] Verify `leadserve.html` (umbrella landing) branding + tenant switching.
+
+### Dev tooling
+`package.json` + `tests/` are dev-only (rules tests); not part of the hosted app (only `public/` is deployed).
+Requires Java for the Firestore emulator (`brew install openjdk`).
 
 See the full architecture write-up (`LEADSERVE-architecture.md`) for the two-track plan.
