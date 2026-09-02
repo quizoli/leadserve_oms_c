@@ -1,17 +1,21 @@
 rules_version = '2';
 
-// LEADSERVE OMS — Firestore rules (v1, interim)
+// LEADSERVE OMS — Firestore rules (v2: per-module entitlement)
 //
-// Context: this project (leadserve-oms) hosts a SINGLE tenant (the demo clinic)
-// in legacyRoot mode, so the PROJECT boundary already provides tenant isolation.
-// This v1 improves on the legacy live apps (which allow any signed-in user full
-// access) by also blocking deactivated users. It is deliberately simple.
+// Model: this project hosts one clinic (legacyRoot), so the PROJECT boundary
+// provides tenant isolation. These rules add SERVER-ENFORCED per-module
+// entitlement on top of "authenticated + active".
 //
-// TODO(v2 — before multi-tenant / tenantPath): enforce
-//   (a) per-tenant scoping under clinics/{tenantId}/... and
-//   (b) per-MODULE entitlement (a clinic that has not licensed a module cannot
-//       read/write that module's collections), driven by a tenant entitlement doc.
-// See README ROADMAP.
+// Source of truth for entitlement = the doc  settings/entitlement:
+//   { modules: { inventory: true, procurement: true, prescription: true,
+//                philhealth: false, hr: false } }
+// It is READ-ONLY to all clients — only LEADSERVE sets it (Firebase console or
+// Admin SDK, which bypass rules). A clinic therefore cannot grant itself a module.
+//
+// Enforcement is FAIL-OPEN: if the entitlement doc is absent, everything is
+// allowed (so an un-provisioned project keeps working). A module is denied only
+// when the doc exists AND explicitly sets that module to false. Provisioning
+// (control plane) will seed the doc; flip to fail-closed once that exists.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -20,15 +24,42 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // A user is blocked only if they have a profile explicitly marked inactive.
-    // New/bootstrap users (no profile yet) are allowed so the first admin can sign in.
+    // Blocked only if the user has a profile explicitly marked inactive.
+    // Missing profile (bootstrap/first admin) is allowed.
     function notDeactivated() {
       return !exists(/databases/$(database)/documents/oms_users/$(request.auth.uid))
         || get(/databases/$(database)/documents/oms_users/$(request.auth.uid)).data.status != 'inactive';
     }
 
-    match /{document=**} {
-      allow read, write: if signedIn() && notDeactivated();
+    function entExists() {
+      return exists(/databases/$(database)/documents/settings/entitlement);
+    }
+    function entData() {
+      return get(/databases/$(database)/documents/settings/entitlement).data;
+    }
+    // fail-open: allowed unless the entitlement doc exists and sets modules[key] == false
+    function moduleAllowed(key) {
+      return !entExists()
+        || !('modules' in entData())
+        || !(key in entData().modules)
+        || entData().modules[key] != false;
+    }
+
+    // Map a top-level collection to its module gate. Core collections (and any
+    // unknown collection) are ungated → true.
+    function collectionAllowed(col) {
+      return col.matches('inventory_.*') ? moduleAllowed('inventory')
+        : col == 'prescriptions' ? moduleAllowed('prescription')
+        : col == 'cf4' ? moduleAllowed('philhealth')
+        : (col == 'proc_pr' || col == 'proc_po' || col == 'proc_grn') ? moduleAllowed('procurement')
+        : true;
+    }
+
+    match /{col}/{docId} {
+      allow read: if signedIn() && notDeactivated() && collectionAllowed(col);
+      // Same gate for writes, plus the entitlement doc is never client-writable.
+      allow write: if signedIn() && notDeactivated() && collectionAllowed(col)
+        && !(col == 'settings' && docId == 'entitlement');
     }
   }
 }
