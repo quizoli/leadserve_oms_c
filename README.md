@@ -47,8 +47,28 @@ baked in; add-on modules are **pluggable** — shown/hidden by the tenant's `mod
 - [ ] **Review `modules/reports/index.html:129`** — Laoag-region heuristic leftover from LCELC.
 - [ ] Verify `leadserve.html` (umbrella landing) branding + tenant switching.
 
+## Onboarding a clinic (control plane)
+
+When a clinic subscribes, provision its tenant with the Admin-SDK script (membership +
+entitlement are provisioning-locked in the rules, so this is the privileged path):
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/serviceAccount.json \
+node scripts/provision-clinic.mjs \
+  --id=clinicA --name="Clinic A Eye Center" --type=eye \
+  --admin=admin@clinica.ph --plan=full
+```
+
+- **Key:** Firebase console → Project settings → Service accounts → *Generate new private key*.
+- **Admin:** must already exist in Firebase Authentication (resolved by email), or pass `--admin-uid`.
+- **Plans → modules:** `core` (core only), `standard` (+inventory/procurement/prescription/reports),
+  `full` (everything). Override with `--modules=inventory,reports`.
+- Writes `clinics/{id}`, `clinics/{id}/members/{adminUid}`, `clinics/{id}/settings/entitlement`.
+
 ### Dev tooling
-`package.json` + `tests/` are dev-only (rules tests); not part of the hosted app (only `public/` is deployed).
-Requires Java for the Firestore emulator (`brew install openjdk`).
+`package.json`, `scripts/`, `tests/` are dev-only; not part of the hosted app (only `public/` is deployed).
+Requires Java for the emulator (`brew install openjdk`).
+- `npm run test:rules` — security-rules unit tests (27/27: entitlement + multi-tenant isolation)
+- `npm run test:provision` — provisioning end-to-end (9/9: provision → access under rules)
 
 See the full architecture write-up (`LEADSERVE-architecture.md`) for the two-track plan.
