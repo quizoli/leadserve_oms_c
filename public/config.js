@@ -304,6 +304,48 @@
         decorateTenantLinks(document);
     }
 
+    // Single source of truth for entitlement: once Firebase is up, read the
+    // server's settings/entitlement doc and reconcile the CLIENT with it — retile
+    // the landing and redirect out of any now-disabled module page. The hardcoded
+    // config.modules is only the pre-load default. Fail-open: if the doc is absent
+    // or unreadable, keep the defaults. (The Firestore rules are the real gate;
+    // this just keeps the UI honest.)
+    async function applyServerEntitlement() {
+        try {
+            if (!window.firebase || !firebase.firestore) return;
+            const snap = await firebase.firestore().collection("settings").doc("entitlement").get();
+            if (!snap.exists) return;
+            const mods = (snap.data() || {}).modules;
+            if (!mods || typeof mods !== "object") return;
+
+            config.modules = Object.assign({}, config.modules, mods);
+            window.OMS_CONFIG.modules = config.modules;
+
+            document.querySelectorAll(".module-tile[data-module]").forEach((tile) => {
+                tile.style.display = config.modules[tile.getAttribute("data-module")] === true ? "" : "none";
+            });
+
+            const seg = (window.location.pathname.split("/modules/")[1] || "");
+            const key = seg ? seg.split("/")[0].toLowerCase() : "";
+            const CORE = ["registration", "consultation", "charge-slip", "pos", "settings"];
+            if (key && CORE.indexOf(key) === -1 && config.modules[key] !== true) {
+                const depth = Math.max(0, window.location.pathname.split("/").length - 2);
+                window.location.replace("../".repeat(depth) + "index.html");
+            }
+        } catch (e) { /* fail-open */ }
+    }
+
+    function syncEntitlementWhenReady() {
+        let tries = 0;
+        const timer = setInterval(() => {
+            if ((window.firebase && firebase.firestore) || tries > 100) {
+                clearInterval(timer);
+                applyServerEntitlement();
+            }
+            tries++;
+        }, 100);
+    }
+
     window.OMS_TENANTS = TENANTS;
     window.OMS_CONFIG = config;
     window.OMS_ACTIVE_TENANT = activeTenant;
@@ -312,6 +354,8 @@
     window.tenantCollectionPath = tenantCollectionPath;
     window.initOMSFirestore = initOMSFirestore;
     window.applyClinicIdentity = applyClinicIdentity;
+    window.applyServerEntitlement = applyServerEntitlement;
 
     document.addEventListener("DOMContentLoaded", applyBranding);
+    document.addEventListener("DOMContentLoaded", syncEntitlementWhenReady);
 })();
