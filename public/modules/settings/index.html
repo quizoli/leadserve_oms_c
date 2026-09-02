@@ -259,7 +259,7 @@
         const settingsRef = db.collection("settings").doc("clinic");
         const usersCol = db.collection("oms_users");
 
-        const ADMIN_EMAILS = ["admin@leadserve.demo"];
+        const ADMIN_EMAILS = (window.OMS_CONFIG && window.OMS_CONFIG.adminEmails) || [];
         const MODULE_ACCESS = [
             { key: "registration",   label: "Patient Registration" },
             { key: "consultation",   label: "Booking & Consultation" },

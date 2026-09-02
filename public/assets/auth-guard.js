@@ -1,8 +1,8 @@
 // auth-guard.js
 (function () {
-    // TODO(leadserve): seed the admin list from the tenant's admin config,
-    // and enforce module access server-side (Firestore rules), not just here.
-    const ADMIN_EMAILS = ["admin@leadserve.demo"];
+    // Admins come from the tenant config (config.js -> activeTenant.adminEmails);
+    // additional admins can be granted per-user via oms_users profile (isAdmin/role).
+    const ADMIN_EMAILS = (window.OMS_CONFIG && window.OMS_CONFIG.adminEmails) || [];
     const LEGACY_EMAIL_PERMISSIONS = {};
 
     function authRedirectUrl() {

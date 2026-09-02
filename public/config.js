@@ -32,6 +32,10 @@
             contactInfo: "Reliable, customizable clinic management",
             physicianInfo: "Attending Physician",
             physicians: ["Attending Physician", "Dr. Demo One", "Dr. Demo Two"],
+            // Bootstrap administrators for this clinic (full access, can manage users).
+            // Per-clinic config so admins aren't hardcoded in JS. Additional admins can
+            // also be granted via each user's oms_users profile (isAdmin / role: admin).
+            adminEmails: ["olitun@me.com"],
             logoPath: "assets/logo.png",
             firebase: DEMO_FIREBASE,
             firestore: {
