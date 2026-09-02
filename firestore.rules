@@ -1,64 +1,86 @@
 rules_version = '2';
 
-// LEADSERVE OMS — Firestore rules (v2: per-module entitlement)
+// LEADSERVE OMS — Firestore rules (v3: multi-tenant isolation + per-module entitlement)
 //
-// Model: this project hosts one clinic (legacyRoot), so the PROJECT boundary
-// provides tenant isolation. These rules add SERVER-ENFORCED per-module
-// entitlement on top of "authenticated + active".
+// Two data shapes coexist:
 //
-// Source of truth for entitlement = the doc  settings/entitlement:
-//   { modules: { inventory: true, procurement: true, prescription: true,
-//                philhealth: false, hr: false } }
-// It is READ-ONLY to all clients — only LEADSERVE sets it (Firebase console or
-// Admin SDK, which bypass rules). A clinic therefore cannot grant itself a module.
+//  1. legacyRoot (current single-clinic demo): flat top-level collections
+//     (patients, visits, oms_slips, prescriptions, inventory_*, ...). Guarded by
+//     "signed-in + active", with per-module gating via  settings/entitlement.
 //
-// Enforcement is FAIL-OPEN: if the entitlement doc is absent, everything is
-// allowed (so an un-provisioned project keeps working). A module is denied only
-// when the doc exists AND explicitly sets that module to false. Provisioning
-// (control plane) will seed the doc; flip to fail-closed once that exists.
+//  2. tenantPath (multi-tenant SaaS): every clinic's data lives under
+//     clinics/{tenantId}/<collection>/<doc>. A user may touch a clinic's data
+//     ONLY if they are a member of that clinic (clinics/{tid}/members/{uid} exists).
+//     Per-clinic module entitlement lives at clinics/{tid}/settings/entitlement.
+//     Membership + entitlement are provisioned by LEADSERVE (Admin SDK/console)
+//     and are NOT client-writable — a clinic can neither add members nor grant
+//     itself modules, and no clinic can read or write another clinic's data.
+//
+// Module gating is fail-open (absent entitlement doc = allowed) in both shapes.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+
+    // ---- shared module → collection mapping ----
+    function collectionModule(col) {
+      return col.matches('inventory_.*') ? 'inventory'
+        : col == 'prescriptions' ? 'prescription'
+        : col == 'cf4' ? 'philhealth'
+        : (col == 'proc_pr' || col == 'proc_po' || col == 'proc_grn') ? 'procurement'
+        : '';
     }
 
-    // Blocked only if the user has a profile explicitly marked inactive.
-    // Missing profile (bootstrap/first admin) is allowed.
+    // ---- legacyRoot (single-tenant demo) ----
     function notDeactivated() {
       return !exists(/databases/$(database)/documents/oms_users/$(request.auth.uid))
         || get(/databases/$(database)/documents/oms_users/$(request.auth.uid)).data.status != 'inactive';
     }
-
-    function entExists() {
-      return exists(/databases/$(database)/documents/settings/entitlement);
-    }
-    function entData() {
-      return get(/databases/$(database)/documents/settings/entitlement).data;
-    }
-    // fail-open: allowed unless the entitlement doc exists and sets modules[key] == false
-    function moduleAllowed(key) {
-      return !entExists()
-        || !('modules' in entData())
-        || !(key in entData().modules)
-        || entData().modules[key] != false;
+    function rootModuleAllowed(key) {
+      return key == ''
+        || !exists(/databases/$(database)/documents/settings/entitlement)
+        || !('modules' in get(/databases/$(database)/documents/settings/entitlement).data)
+        || !(key in get(/databases/$(database)/documents/settings/entitlement).data.modules)
+        || get(/databases/$(database)/documents/settings/entitlement).data.modules[key] != false;
     }
 
-    // Map a top-level collection to its module gate. Core collections (and any
-    // unknown collection) are ungated → true.
-    function collectionAllowed(col) {
-      return col.matches('inventory_.*') ? moduleAllowed('inventory')
-        : col == 'prescriptions' ? moduleAllowed('prescription')
-        : col == 'cf4' ? moduleAllowed('philhealth')
-        : (col == 'proc_pr' || col == 'proc_po' || col == 'proc_grn') ? moduleAllowed('procurement')
-        : true;
+    // ---- tenantPath (multi-tenant) ----
+    function isMember(tid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/clinics/$(tid)/members/$(request.auth.uid));
+    }
+    function tenantModuleAllowed(tid, key) {
+      return key == ''
+        || !exists(/databases/$(database)/documents/clinics/$(tid)/settings/entitlement)
+        || !('modules' in get(/databases/$(database)/documents/clinics/$(tid)/settings/entitlement).data)
+        || !(key in get(/databases/$(database)/documents/clinics/$(tid)/settings/entitlement).data.modules)
+        || get(/databases/$(database)/documents/clinics/$(tid)/settings/entitlement).data.modules[key] != false;
     }
 
+    // Clinic profile doc: readable by members, never client-writable.
+    match /clinics/{tid} {
+      allow read: if isMember(tid);
+      allow write: if false;
+    }
+
+    // All of a clinic's data. Isolated by membership + per-clinic module entitlement.
+    // members/* and settings/entitlement are provisioned by LEADSERVE (not client-writable).
+    match /clinics/{tid}/{col}/{docId} {
+      allow read: if isMember(tid) && tenantModuleAllowed(tid, collectionModule(col));
+      allow write: if isMember(tid)
+        && tenantModuleAllowed(tid, collectionModule(col))
+        && col != 'members'
+        && !(col == 'settings' && docId == 'entitlement');
+    }
+
+    // Flat legacyRoot collections (the current demo). Excludes the 'clinics' root,
+    // which is governed by the tenant rules above.
     match /{col}/{docId} {
-      allow read: if signedIn() && notDeactivated() && collectionAllowed(col);
-      // Same gate for writes, plus the entitlement doc is never client-writable.
-      allow write: if signedIn() && notDeactivated() && collectionAllowed(col)
+      allow read: if signedIn() && notDeactivated()
+        && col != 'clinics' && rootModuleAllowed(collectionModule(col));
+      allow write: if signedIn() && notDeactivated()
+        && col != 'clinics' && rootModuleAllowed(collectionModule(col))
         && !(col == 'settings' && docId == 'entitlement');
     }
   }

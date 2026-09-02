@@ -50,6 +50,34 @@ await seed(async (db) => setDoc(doc(db, "oms_users/badu"), { status: "inactive" 
 const badUser = env.authenticatedContext("badu").firestore();
 await check("deactivated user CANNOT write patients", assertFails(setDoc(doc(badUser, "patients/p9"), { name: "x" })));
 
+console.log("E. Multi-tenant isolation (tenantPath: clinics/{tid}/...)");
+// Provision two clinics with one member each (LEADSERVE would do this via Admin SDK).
+await seed(async (db) => {
+  await setDoc(doc(db, "clinics/clinicA/members/userA"), { role: "admin" });
+  await setDoc(doc(db, "clinics/clinicB/members/userB"), { role: "admin" });
+  // clinic A has prescription disabled, inventory enabled
+  await setDoc(doc(db, "clinics/clinicA/settings/entitlement"), { modules: { prescription: false, inventory: true } });
+});
+const A = env.authenticatedContext("userA").firestore();
+const B = env.authenticatedContext("userB").firestore();
+const C = env.authenticatedContext("userC").firestore(); // member of nothing
+
+await check("member A CAN write own clinic data (clinics/clinicA/patients)", assertSucceeds(setDoc(doc(A, "clinics/clinicA/patients/p1"), { name: "A patient" })));
+await check("member A CAN read own clinic data", assertSucceeds(getDoc(doc(A, "clinics/clinicA/patients/p1"))));
+await check("member A CANNOT read OTHER clinic data (clinics/clinicB)", assertFails(getDoc(doc(A, "clinics/clinicB/patients/x"))));
+await check("member A CANNOT write OTHER clinic data (clinics/clinicB)", assertFails(setDoc(doc(A, "clinics/clinicB/patients/x"), { name: "hax" })));
+await check("member B CAN write own clinic (clinics/clinicB)", assertSucceeds(setDoc(doc(B, "clinics/clinicB/visits/v1"), { pid: "p" })));
+await check("member B CANNOT touch clinic A", assertFails(setDoc(doc(B, "clinics/clinicA/patients/p2"), { name: "hax" })));
+await check("non-member C CANNOT read clinic A", assertFails(getDoc(doc(C, "clinics/clinicA/patients/p1"))));
+await check("non-member C CANNOT read clinic B", assertFails(getDoc(doc(C, "clinics/clinicB/visits/v1"))));
+
+console.log("F. Per-clinic module entitlement + provisioning locks");
+await check("clinic A prescription DISABLED -> write DENIED", assertFails(setDoc(doc(A, "clinics/clinicA/prescriptions/rx1"), { ts: 1 })));
+await check("clinic A inventory ENABLED -> write ALLOWED", assertSucceeds(setDoc(doc(A, "clinics/clinicA/inventory_medicines/m1"), { qty: 3 })));
+await check("member CANNOT add clinic members (provisioning locked)", assertFails(setDoc(doc(A, "clinics/clinicA/members/intruder"), { role: "admin" })));
+await check("member CANNOT edit clinic entitlement (locked)", assertFails(setDoc(doc(A, "clinics/clinicA/settings/entitlement"), { modules: { prescription: true } })));
+await check("member CANNOT write clinic profile doc (locked)", assertFails(setDoc(doc(A, "clinics/clinicA"), { name: "renamed" })));
+
 await env.cleanup();
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
