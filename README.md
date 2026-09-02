@@ -37,9 +37,13 @@ baked in; add-on modules are **pluggable** — shown/hidden by the tenant's `mod
 - [ ] **Activate enforcement** — create the `settings/entitlement` doc in the live project
       (console or Admin SDK), e.g. `{ modules: { inventory:true, procurement:true, prescription:true,
       reports:true, philhealth:false, hr:false } }`. Rules are fail-open until it exists.
-- [ ] **Single source of truth** — have `config.js` READ `settings/entitlement` from Firestore
-      instead of hardcoding `modules` (so tiles/guard and rules agree).
-- [ ] **Multi-tenant proof** — prove `tenantPath` mode serves two clinics with isolated data.
+- [x] **Single source of truth** — `config.js` reads `settings/entitlement` from Firestore and
+      reconciles tiles/guard with it (`applyServerEntitlement`).
+- [x] **Config-driven clinic admins** — `activeTenant.adminEmails` (fixes the hidden Users tab).
+- [x] **Multi-tenant isolation PROVEN (rules)** — `clinics/{tid}/...` isolated by membership;
+      per-clinic entitlement; membership/entitlement provisioning-locked. Emulator tests 27/27.
+- [ ] **Multi-tenant LIVE (client)** — activate `tenantPath` in the app with 2 tenants + a tenant
+      switcher; provision memberships (`clinics/{tid}/members/{uid}`) via Admin SDK/console.
 - [ ] **Review `modules/reports/index.html:129`** — Laoag-region heuristic leftover from LCELC.
 - [ ] Verify `leadserve.html` (umbrella landing) branding + tenant switching.
 
