@@ -90,8 +90,8 @@
         lab:     { label: "Laboratory",    vertical: "Diagnostics",     icon: "🧪" },
         general: { label: "Clinic",        vertical: "General practice", icon: "🏥" },
     };
-    APP_CONFIG.appName = "LEADSERVE Clinics";
-    APP_CONFIG.tagline = "Clinic Management Platform";
+    APP_CONFIG.appName = "LEADSERVE CMS";
+    APP_CONFIG.tagline = "Clinic Management System";
     window.LEADSERVE_CLINIC_TYPES = CLINIC_TYPES;
 
     function getStoredTenant() {
