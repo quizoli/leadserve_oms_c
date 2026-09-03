@@ -324,76 +324,92 @@
     </style>
 </head>
 <body>
-    <header class="topbar">
-        <div class="topbar-inner">
-            <div class="brand">
-                <img src="assets/leadserve-logo.png" alt="LEADSERVE OMS" onerror="this.style.display='none'">
+    <style>
+        .ls-wrap{--navy:#0a3d62;--blue:#1e73b8;--ink:#0f172a;--muted:#64748b;--line:#e6ebf2;--bg:#f4f7fb;}
+        body{background:#f4f7fb;margin:0;font-family:'Inter',system-ui,-apple-system,Arial,sans-serif;color:#0f172a;}
+        .ls-topbar{background:#fff;border-bottom:1px solid #e6ebf2;}
+        .ls-topbar-inner{max-width:1080px;margin:0 auto;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;}
+        .ls-brand{display:flex;align-items:center;gap:12px;}
+        .ls-mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#0a3d62,#1e73b8);display:grid;place-items:center;color:#fff;font-size:19px;box-shadow:0 4px 12px rgba(10,61,98,.25);}
+        .ls-name{font-weight:800;font-size:18px;letter-spacing:-.3px;line-height:1;}
+        .ls-name b{color:#1e73b8;}
+        .ls-tag{font-size:12px;color:#64748b;margin-top:3px;}
+        .ls-signout{border:1px solid #e6ebf2;background:#fff;border-radius:9px;padding:8px 14px;font:inherit;cursor:pointer;color:#0f172a;}
+        .ls-signout:hover{background:#f4f7fb;}
+        .ls-shell{max-width:1080px;margin:0 auto;padding:30px 20px 60px;}
+        .ls-login{max-width:410px;margin:5vh auto 0;background:#fff;border:1px solid #e6ebf2;border-radius:18px;overflow:hidden;box-shadow:0 14px 44px rgba(15,23,42,.09);}
+        .ls-login-hero{background:linear-gradient(135deg,#0a3d62,#1e73b8);color:#fff;padding:26px;text-align:center;}
+        .ls-login-hero .ls-mark{margin:0 auto 12px;width:54px;height:54px;font-size:28px;border-radius:15px;background:rgba(255,255,255,.16);box-shadow:none;}
+        .ls-login-hero h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.3px;}
+        .ls-login-hero p{margin:6px 0 0;font-size:13px;opacity:.85;}
+        .ls-login-body{padding:22px 26px 28px;}
+        .ls-login-body label{display:block;font-size:12px;font-weight:600;color:#64748b;margin:14px 0 5px;}
+        .ls-login-body input{width:100%;padding:11px 13px;border:1px solid #e6ebf2;border-radius:10px;font:inherit;box-sizing:border-box;}
+        .ls-login-body input:focus{outline:none;border-color:#1e73b8;box-shadow:0 0 0 3px rgba(30,115,184,.12);}
+        .ls-cta{width:100%;margin-top:20px;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#0a3d62,#1e73b8);color:#fff;font:inherit;font-weight:700;cursor:pointer;}
+        .ls-cta:hover{filter:brightness(1.07);}
+        .ls-status{margin-top:12px;font-size:13px;color:#64748b;text-align:center;}
+        .ls-status.error{color:#dc2626;}
+        .ls-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+        .ls-head h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.4px;}
+        .ls-head p{margin:4px 0 0;font-size:14px;color:#64748b;}
+        .ls-chip{background:#fff;border:1px solid #e6ebf2;border-radius:999px;padding:7px 14px;font-size:13px;}
+        .ls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+        .ls-card{position:relative;background:#fff;border:1px solid #e6ebf2;border-radius:16px;padding:20px;cursor:pointer;transition:transform .16s,box-shadow .16s,border-color .16s;overflow:hidden;text-align:left;font:inherit;color:inherit;display:block;width:100%;}
+        .ls-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--accent,#1e73b8);}
+        .ls-card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(15,23,42,.13);border-color:transparent;}
+        .ls-card-top{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
+        .ls-ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:23px;background:var(--accent-bg,#e6f1fb);}
+        .ls-cname{font-weight:700;font-size:17px;line-height:1.2;}
+        .ls-cvert{font-size:12.5px;color:#64748b;margin-top:2px;}
+        .ls-badge{position:absolute;top:18px;right:18px;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:4px 9px;border-radius:7px;background:var(--accent-bg,#e6f1fb);color:var(--accent,#1e73b8);}
+        .ls-card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e6ebf2;padding-top:13px;}
+        .ls-wid{font-size:12px;color:#94a3b8;}
+        .ls-open{font-size:13px;font-weight:700;color:#1e73b8;}
+        @media(max-width:560px){.ls-grid{grid-template-columns:1fr;}}
+    </style>
+    <header class="ls-topbar">
+        <div class="ls-topbar-inner">
+            <div class="ls-brand">
+                <div class="ls-mark">✚</div>
                 <div>
-                    <div class="brand-title">LEADSERVE OMS</div>
-                    <div class="brand-sub">Ophthalmology Management System</div>
+                    <div class="ls-name">LEADSERVE <b>Clinics</b></div>
+                    <div class="ls-tag">Clinic Management Platform</div>
                 </div>
             </div>
-            <div class="top-actions">
-                <button class="btn hidden" id="btnSignOut" type="button">Sign Out</button>
-            </div>
+            <button class="ls-signout hidden" id="btnSignOut" type="button">Sign out</button>
         </div>
     </header>
 
-    <main class="shell">
-        <section id="loginView" class="workspace">
-            <div class="panel">
-                <div class="panel-head">
-                    <div>
-                        <div class="panel-title">Account Access</div>
-                        <div class="panel-note">Sign in to open a clinic workspace.</div>
-                    </div>
+    <main class="ls-shell">
+        <section id="loginView">
+            <div class="ls-login">
+                <div class="ls-login-hero">
+                    <div class="ls-mark">✚</div>
+                    <h1>Welcome back</h1>
+                    <p>Sign in to open your clinic workspace</p>
                 </div>
-                <div class="panel-body">
-                    <h1>Sign In</h1>
+                <div class="ls-login-body">
                     <label for="email">Email</label>
-                    <input id="email" type="email" autocomplete="username">
+                    <input id="email" type="email" autocomplete="username" placeholder="you@clinic.ph">
                     <label for="password">Password</label>
-                    <input id="password" type="password" autocomplete="current-password">
-                    <div class="btn-row">
-                        <button class="btn primary full" id="btnLogin" type="button">Continue</button>
-                    </div>
-                    <div class="status" id="loginStatus"></div>
+                    <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+                    <button class="ls-cta" id="btnLogin" type="button">Continue</button>
+                    <div class="ls-status" id="loginStatus"></div>
                 </div>
             </div>
-
-            <aside class="panel">
-                <div class="panel-body">
-                    <div class="logo-lockup">
-                        <img src="assets/leadserve-logo.png" alt="LEADSERVE OMS">
-                    </div>
-                    <div class="metric-strip">
-                        <div class="metric">
-                            <div class="metric-label">Initial Clinics</div>
-                            <div class="metric-value">2</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-label">Data Model</div>
-                            <div class="metric-value">Isolated</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-label">Platform</div>
-                            <div class="metric-value">OMS</div>
-                        </div>
-                    </div>
-                </div>
-            </aside>
         </section>
 
-        <section id="clinicView" class="clinic-view hidden">
-            <div class="section-head">
+        <section id="clinicView" class="hidden">
+            <div class="ls-head">
                 <div>
-                    <h1>Clinic Workspaces</h1>
-                    <div class="panel-note" id="userLine">Select a clinic workspace.</div>
+                    <h1>Your clinic workspaces</h1>
+                    <p id="userLine">Choose a clinic to open.</p>
                 </div>
-                <div class="user-chip" id="userChip"></div>
+                <div class="ls-chip" id="userChip"></div>
             </div>
-            <div class="clinic-grid" id="clinicGrid"></div>
-            <div class="status" id="clinicStatus"></div>
+            <div class="ls-grid" id="clinicGrid"></div>
+            <div class="ls-status" id="clinicStatus"></div>
         </section>
     </main>
 
@@ -463,8 +479,15 @@
             return [];
         }
 
-        // Load each clinic's profile from clinics/{id} (falls back to static registry / id).
+        // Load each clinic's profile from clinics/{id} and render a typed card.
+        const TYPE_STYLE = {
+            eye:     { a: "#1e73b8", bg: "#e6f1fb" },
+            dental:  { a: "#0f9d8f", bg: "#dcf5f0" },
+            lab:     { a: "#7c3aed", bg: "#efe8fd" },
+            general: { a: "#475569", bg: "#eef2f7" },
+        };
         async function renderClinics(ids) {
+            const TYPES = window.LEADSERVE_CLINIC_TYPES || {};
             clinicGrid.innerHTML = "";
             for (const tenantId of ids) {
                 let clinic = Object.assign({}, tenants[tenantId] || {});
@@ -472,23 +495,27 @@
                     const snap = await db.collection("clinics").doc(tenantId).get();
                     if (snap.exists) clinic = Object.assign(clinic, snap.data());
                 } catch (e) {}
+                const type = clinic.clinicType || "general";
+                const t = TYPES[type] || TYPES.general || { label: "Clinic", vertical: "", icon: "🏥" };
+                const st = TYPE_STYLE[type] || TYPE_STYLE.general;
                 const name = clinic.clinicName || tenantId;
-                const meta = clinic.address || clinic.clinicType || "";
-                const badge = clinic.clinicShortName || tenantId;
                 const card = document.createElement("button");
-                card.className = "clinic-card";
+                card.className = "ls-card";
                 card.type = "button";
+                card.style.setProperty("--accent", st.a);
+                card.style.setProperty("--accent-bg", st.bg);
                 card.innerHTML = `
-                    <div class="clinic-top">
+                    <span class="ls-badge">${t.label}</span>
+                    <div class="ls-card-top">
+                        <div class="ls-ico">${t.icon || "🏥"}</div>
                         <div>
-                            <div class="clinic-name">${name}</div>
-                            <div class="clinic-meta">${meta}</div>
+                            <div class="ls-cname">${name}</div>
+                            <div class="ls-cvert">${clinic.address || t.vertical || ""}</div>
                         </div>
-                        <span class="clinic-badge">${badge}</span>
                     </div>
-                    <div class="clinic-footer">
-                        <span class="clinic-meta">Workspace ID: ${tenantId}</span>
-                        <span class="open-label">Open</span>
+                    <div class="ls-card-foot">
+                        <span class="ls-wid">${tenantId}</span>
+                        <span class="ls-open">Open workspace →</span>
                     </div>
                 `;
                 card.addEventListener("click", () => {

@@ -80,6 +80,20 @@
     const leadserveRequested = onLeadservePage || params.get(APP_CONFIG.leadserveQueryParam) === "1";
     const requestedTenant = (params.get(APP_CONFIG.tenantQueryParam) || "").trim().toLowerCase();
 
+    // ---- Brand: one umbrella product, verticals per tenant's clinicType ----
+    // LEADSERVE Clinics is the platform. Each clinic (tenant) is set up with the
+    // clinic type it operates as; the app adapts its clinical modules to that type.
+    // One brand, not separate products. Ophthalmology ("eye") is just one type.
+    const CLINIC_TYPES = {
+        eye:     { label: "Eye Center",    vertical: "Ophthalmology",   icon: "👁️" },
+        dental:  { label: "Dental Clinic", vertical: "Dentistry",       icon: "🦷" },
+        lab:     { label: "Laboratory",    vertical: "Diagnostics",     icon: "🧪" },
+        general: { label: "Clinic",        vertical: "General practice", icon: "🏥" },
+    };
+    APP_CONFIG.appName = "LEADSERVE Clinics";
+    APP_CONFIG.tagline = "Clinic Management Platform";
+    window.LEADSERVE_CLINIC_TYPES = CLINIC_TYPES;
+
     function getStoredTenant() {
         try { return localStorage.getItem(APP_CONFIG.tenantStorageKey) || ""; }
         catch (e) { return ""; }
