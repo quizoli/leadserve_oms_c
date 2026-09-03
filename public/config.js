@@ -147,7 +147,7 @@
         const seg = (window.location.pathname.split("/modules/")[1] || "");
         const key = seg ? seg.split("/")[0].toLowerCase() : "";
         if (!key) return; // not a module page (landing, login, leadserve)
-        const CORE = ["registration", "consultation", "charge-slip", "pos", "settings"];
+        const CORE = ["registration", "consultation", "charge-slip", "pos", "settings", "dental-chart"];
         if (CORE.indexOf(key) !== -1) return;
         const mods = activeTenant && activeTenant.modules;
         if (!mods) return; // dynamic tenant: modules load async -> applyServerEntitlement decides
@@ -345,6 +345,7 @@
             });
             document.title = `${APP_CONFIG.appName} - ${config.clinicShortName || config.clinicName}`;
             applyBranding();
+            if (window.applyTileVisibility) window.applyTileVisibility(); // re-gate by clinicType
         } catch (e) { /* keep placeholder */ }
     }
 
@@ -359,13 +360,17 @@
             config.modules = Object.assign({}, config.modules, mods);
             window.OMS_CONFIG.modules = config.modules;
 
-            document.querySelectorAll(".module-tile[data-module]").forEach((tile) => {
-                tile.style.display = config.modules[tile.getAttribute("data-module")] === true ? "" : "none";
-            });
+            if (window.applyTileVisibility) {
+                window.applyTileVisibility(); // handles both entitlement + clinicType
+            } else {
+                document.querySelectorAll(".module-tile[data-module]").forEach((tile) => {
+                    tile.style.display = config.modules[tile.getAttribute("data-module")] === true ? "" : "none";
+                });
+            }
 
             const seg = (window.location.pathname.split("/modules/")[1] || "");
             const key = seg ? seg.split("/")[0].toLowerCase() : "";
-            const CORE = ["registration", "consultation", "charge-slip", "pos", "settings"];
+            const CORE = ["registration", "consultation", "charge-slip", "pos", "settings", "dental-chart"];
             if (key && CORE.indexOf(key) === -1 && config.modules[key] !== true) {
                 const depth = Math.max(0, window.location.pathname.split("/").length - 2);
                 window.location.replace("../".repeat(depth) + "index.html");

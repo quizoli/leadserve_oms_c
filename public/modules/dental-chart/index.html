@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>LEADSERVE OMS - Dental Chart & Consultation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="../../assets/logo.png">
+    <link rel="stylesheet" href="../../assets/style.css">
+    <style>
+        @page { size: A4; margin: 12mm; }
+        :root{ --brand:#0a3d62; --ink:#0f172a; --line:#e5e7eb; --muted:#667085; --bg:#f7f9fc; }
+        body{ font-family:'Inter',system-ui,Arial,sans-serif; background:var(--bg); color:var(--ink); margin:0; }
+        .wrap{ max-width:1100px; margin:14px auto; padding:0 14px; }
+        .section{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+        .section h3{ margin:0 0 12px; font-size:15px; }
+        .grid{ display:grid; gap:10px; }
+        .g4{ grid-template-columns:repeat(4,1fr); } .g3{ grid-template-columns:repeat(3,1fr); } .g2{ grid-template-columns:repeat(2,1fr); }
+        label.f{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+        input,select,textarea{ width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; box-sizing:border-box; }
+        textarea{ min-height:56px; resize:vertical; }
+        .btn{ border:1px solid var(--line); background:#fff; padding:9px 14px; border-radius:9px; cursor:pointer; font:inherit; }
+        .btn.primary{ background:var(--brand); color:#fff; border-color:transparent; }
+        .btn.small{ padding:5px 10px; font-size:12px; }
+        .top-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+        /* Odontogram */
+        .arch{ display:flex; justify-content:center; gap:18px; margin:8px 0; flex-wrap:wrap; }
+        .quad{ display:flex; gap:4px; }
+        .tooth{ width:40px; display:flex; flex-direction:column; align-items:center; cursor:pointer; user-select:none; }
+        .tooth .crown{ width:30px; height:34px; border:2px solid #c7ced9; border-radius:6px 6px 3px 3px; background:#fff; transition:.08s; }
+        .tooth:hover .crown{ outline:2px solid var(--brand); }
+        .tooth .num{ font-size:10px; color:var(--muted); margin-top:3px; }
+        .tooth.missing .crown{ background:#e5e7eb; border-style:dashed; position:relative; }
+        .tooth.missing .crown::after{ content:"✕"; color:#9ca3af; display:grid; place-items:center; height:100%; font-weight:700; }
+        .palette{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+        .swatch{ display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:8px; padding:5px 10px; cursor:pointer; font-size:12.5px; }
+        .swatch.active{ border-color:var(--brand); box-shadow:0 0 0 2px rgba(10,61,98,.15); }
+        .dot{ width:14px; height:14px; border-radius:4px; border:1px solid #c7ced9; }
+
+        table.plan{ width:100%; border-collapse:collapse; }
+        table.plan th,table.plan td{ border:1px solid var(--line); padding:7px 8px; font-size:13px; text-align:left; }
+        table.plan th{ background:#f1f5f9; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+        .muted{ color:var(--muted); }
+        .status-line{ font-size:13px; color:var(--muted); }
+        @media print{ .noprint{ display:none !important; } body{ background:#fff; } .section{ border:none; box-shadow:none; padding:6px 0; } }
+    </style>
+
+    <script src="../../config.js"></script>
+    <script src="../../assets/auth-guard.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="../../assets/leadserve-firestore.js"></script>
+    <script src="../../assets/app.js"></script>
+    <script defer src="../../assets/header.js"></script>
+    <script>
+        if (!firebase.apps.length) firebase.initializeApp(window.OMS_CONFIG.firebase);
+        const db = firebase.firestore();
+    </script>
+</head>
+<body>
+    <msn-header></msn-header>
+
+    <div class="wrap">
+        <div class="section">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                <h3 style="margin:0;">Dental Chart &amp; Consultation</h3>
+                <div class="top-actions noprint">
+                    <button class="btn" id="btnLoad">Load Last</button>
+                    <button class="btn" id="btnNew">New</button>
+                    <button class="btn" id="btnPrint">Print</button>
+                    <button class="btn primary" id="btnSave">Save</button>
+                </div>
+            </div>
+            <div class="status-line noprint" id="status" style="margin-top:6px;"></div>
+        </div>
+
+        <div class="section">
+            <h3>Patient</h3>
+            <div class="grid g4">
+                <div><label class="f">Patient Name</label><input id="p_name"></div>
+                <div><label class="f">Age</label><input id="p_age" type="number" min="0"></div>
+                <div><label class="f">Sex</label><select id="p_sex"><option value="">—</option><option>Female</option><option>Male</option></select></div>
+                <div><label class="f">Date</label><input id="p_date" type="date"></div>
+            </div>
+            <div style="margin-top:10px;"><label class="f">Chief Complaint</label><textarea id="p_cc" placeholder="e.g. Toothache upper left, sensitivity to cold"></textarea></div>
+        </div>
+
+        <div class="section">
+            <h3>Odontogram <span class="muted" style="font-weight:400;font-size:12px;">(pick a condition, then click teeth)</span></h3>
+            <div class="palette noprint" id="palette"></div>
+            <div class="arch" id="archUpper"></div>
+            <div class="arch" id="archLower"></div>
+        </div>
+
+        <div class="section">
+            <h3>Oral Examination</h3>
+            <div class="grid g3">
+                <div><label class="f">Oral Hygiene</label><select id="e_hygiene"><option value="">—</option><option>Good</option><option>Fair</option><option>Poor</option></select></div>
+                <div><label class="f">Gingiva / Periodontal</label><select id="e_gingiva"><option value="">—</option><option>Healthy</option><option>Gingivitis</option><option>Mild periodontitis</option><option>Moderate periodontitis</option><option>Severe periodontitis</option></select></div>
+                <div><label class="f">Occlusion</label><select id="e_occlusion"><option value="">—</option><option>Normal</option><option>Class I</option><option>Class II</option><option>Class III</option><option>Crossbite</option><option>Openbite</option></select></div>
+            </div>
+            <div style="margin-top:10px;"><label class="f">Findings / Remarks</label><textarea id="e_remarks"></textarea></div>
+        </div>
+
+        <div class="section">
+            <h3>Treatment Plan
+                <button class="btn small noprint" id="btnAddRow" style="float:right;">+ Add procedure</button>
+                <button class="btn small noprint" id="btnFromChart" style="float:right;margin-right:6px;">Auto from chart</button>
+            </h3>
+            <table class="plan">
+                <thead><tr><th style="width:70px;">Tooth</th><th>Procedure</th><th style="width:140px;">Status</th><th style="width:110px;">Fee</th><th class="noprint" style="width:40px;"></th></tr></thead>
+                <tbody id="planBody"></tbody>
+                <tfoot><tr><td colspan="3" style="text-align:right;font-weight:600;">Total</td><td id="planTotal" style="font-weight:600;">0.00</td><td class="noprint"></td></tr></tfoot>
+            </table>
+        </div>
+        <footer style="text-align:center;color:var(--muted);font-size:12px;padding:10px 0 24px;">
+            <span data-clinic="name"></span> &bull; <span data-clinic="address"></span> &bull; Dental Records
+        </footer>
+    </div>
+
+    <script>
+        const el = (id) => document.getElementById(id);
+        const setStatus = (m, ok) => { const s = el("status"); s.textContent = m || ""; s.style.color = ok ? "#16a34a" : "var(--muted)"; };
+
+        // ---- Odontogram conditions ----
+        const CONDITIONS = [
+            { key: "sound", label: "Sound", color: "#ffffff" },
+            { key: "caries", label: "Caries", color: "#ef4444" },
+            { key: "filled", label: "Filled / Restoration", color: "#3b82f6" },
+            { key: "crown", label: "Crown", color: "#a855f7" },
+            { key: "rct", label: "Root Canal", color: "#10b981" },
+            { key: "extraction", label: "For Extraction", color: "#f59e0b" },
+            { key: "missing", label: "Missing", color: "#9ca3af" },
+            { key: "sealant", label: "Sealant", color: "#14b8a6" },
+            { key: "impacted", label: "Impacted", color: "#6366f1" },
+        ];
+        const CMAP = Object.fromEntries(CONDITIONS.map(c => [c.key, c]));
+        // FDI permanent teeth
+        const UPPER = [18,17,16,15,14,13,12,11, 21,22,23,24,25,26,27,28];
+        const LOWER = [48,47,46,45,44,43,42,41, 31,32,33,34,35,36,37,38];
+        let activeCond = "caries";
+        const chart = {}; // toothNum -> conditionKey
+
+        function buildPalette() {
+            const p = el("palette");
+            p.innerHTML = "";
+            CONDITIONS.forEach(c => {
+                const b = document.createElement("div");
+                b.className = "swatch" + (c.key === activeCond ? " active" : "");
+                b.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c.label}`;
+                b.onclick = () => { activeCond = c.key; buildPalette(); };
+                p.appendChild(b);
+            });
+        }
+        function renderTooth(num) {
+            const cond = chart[num] || "sound";
+            const t = document.createElement("div");
+            t.className = "tooth" + (cond === "missing" ? " missing" : "");
+            t.dataset.num = num;
+            const color = CMAP[cond] ? CMAP[cond].color : "#fff";
+            t.innerHTML = `<div class="crown" style="background:${cond === 'missing' ? '' : color}"></div><div class="num">${num}</div>`;
+            t.onclick = () => {
+                chart[num] = (chart[num] === activeCond) ? "sound" : activeCond; // toggle off if same
+                if (chart[num] === "sound") delete chart[num];
+                drawArches();
+            };
+            return t;
+        }
+        function drawArches() {
+            const up = el("archUpper"), lo = el("archLower");
+            up.innerHTML = ""; lo.innerHTML = "";
+            const q1 = document.createElement("div"); q1.className = "quad";
+            const q2 = document.createElement("div"); q2.className = "quad";
+            UPPER.forEach((n, i) => (i < 8 ? q1 : q2).appendChild(renderTooth(n)));
+            up.appendChild(q1); up.appendChild(q2);
+            const q4 = document.createElement("div"); q4.className = "quad";
+            const q3 = document.createElement("div"); q3.className = "quad";
+            LOWER.forEach((n, i) => (i < 8 ? q4 : q3).appendChild(renderTooth(n)));
+            lo.appendChild(q4); lo.appendChild(q3);
+        }
+
+        // ---- Treatment plan ----
+        const PROC_SUGGEST = { caries: "Composite filling", filled: "Restoration check", crown: "Crown", rct: "Root canal therapy", extraction: "Extraction", impacted: "Surgical extraction", sealant: "Pit & fissure sealant" };
+        function addRow(data = {}) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><input value="${data.tooth || ""}" class="r-tooth" style="width:60px;"></td>
+                <td><input value="${data.procedure || ""}" class="r-proc"></td>
+                <td><select class="r-status">${["Planned","In progress","Completed"].map(s => `<option ${s === data.status ? "selected" : ""}>${s}</option>`).join("")}</select></td>
+                <td><input type="number" min="0" step="0.01" value="${data.fee || ""}" class="r-fee" style="width:100px;"></td>
+                <td class="noprint"><button class="btn small r-del">✕</button></td>`;
+            tr.querySelector(".r-del").onclick = () => { tr.remove(); recalc(); };
+            tr.querySelector(".r-fee").addEventListener("input", recalc);
+            el("planBody").appendChild(tr);
+            recalc();
+        }
+        function recalc() {
+            let total = 0;
+            document.querySelectorAll("#planBody .r-fee").forEach(i => total += Number(i.value || 0));
+            el("planTotal").textContent = total.toFixed(2);
+        }
+        function autoFromChart() {
+            Object.entries(chart).forEach(([tooth, cond]) => {
+                if (PROC_SUGGEST[cond]) addRow({ tooth, procedure: PROC_SUGGEST[cond], status: "Planned" });
+            });
+            if (!Object.keys(chart).length) setStatus("Chart is empty — mark teeth first.");
+        }
+        function gatherPlan() {
+            return Array.from(document.querySelectorAll("#planBody tr")).map(tr => ({
+                tooth: tr.querySelector(".r-tooth").value.trim(),
+                procedure: tr.querySelector(".r-proc").value.trim(),
+                status: tr.querySelector(".r-status").value,
+                fee: Number(tr.querySelector(".r-fee").value || 0),
+            })).filter(r => r.tooth || r.procedure);
+        }
+
+        // ---- Persistence (tenant-aware via the firestore patch) ----
+        const COL = "dental_charts";
+        function payload() {
+            return {
+                name: el("p_name").value.trim(), age: el("p_age").value, sex: el("p_sex").value,
+                date: el("p_date").value, chiefComplaint: el("p_cc").value.trim(),
+                chart: { ...chart },
+                exam: { hygiene: el("e_hygiene").value, gingiva: el("e_gingiva").value, occlusion: el("e_occlusion").value, remarks: el("e_remarks").value.trim() },
+                plan: gatherPlan(),
+                ts: Date.now(),
+            };
+        }
+        function apply(d) {
+            el("p_name").value = d.name || ""; el("p_age").value = d.age || ""; el("p_sex").value = d.sex || "";
+            el("p_date").value = d.date || new Date().toISOString().slice(0, 10); el("p_cc").value = d.chiefComplaint || "";
+            Object.keys(chart).forEach(k => delete chart[k]); Object.assign(chart, d.chart || {}); drawArches();
+            const ex = d.exam || {}; el("e_hygiene").value = ex.hygiene || ""; el("e_gingiva").value = ex.gingiva || ""; el("e_occlusion").value = ex.occlusion || ""; el("e_remarks").value = ex.remarks || "";
+            el("planBody").innerHTML = ""; (d.plan || []).forEach(addRow); recalc();
+        }
+
+        el("btnSave").onclick = async () => {
+            const p = payload();
+            if (!p.name) return setStatus("Enter a patient name before saving.");
+            setStatus("Saving…");
+            try { const ref = await db.collection(COL).add(p); setStatus("Saved ✓ (" + ref.id.slice(0, 6) + ")", true); }
+            catch (e) { setStatus("Save failed: " + e.message); }
+        };
+        el("btnLoad").onclick = async () => {
+            setStatus("Loading last chart…");
+            try {
+                const snap = await db.collection(COL).orderBy("ts", "desc").limit(1).get();
+                if (snap.empty) return setStatus("No saved dental charts yet.");
+                apply(snap.docs[0].data()); setStatus("Loaded last chart.", true);
+            } catch (e) { setStatus("Load failed: " + e.message); }
+        };
+        el("btnNew").onclick = () => { apply({}); setStatus("New chart."); };
+        el("btnPrint").onclick = () => window.print();
+        el("btnAddRow").onclick = () => addRow();
+        el("btnFromChart").onclick = autoFromChart;
+
+        // init
+        buildPalette(); drawArches(); apply({});
+    </script>
+</body>
+</html>
