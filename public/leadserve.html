@@ -358,11 +358,13 @@
         .ls-card{position:relative;background:#fff;border:1px solid #e6ebf2;border-radius:16px;padding:20px;cursor:pointer;transition:transform .16s,box-shadow .16s,border-color .16s;overflow:hidden;text-align:left;font:inherit;color:inherit;display:block;width:100%;}
         .ls-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--accent,#1e73b8);}
         .ls-card:hover{transform:translateY(-3px);box-shadow:0 16px 36px rgba(15,23,42,.13);border-color:transparent;}
-        .ls-card-top{display:flex;align-items:center;gap:13px;margin-bottom:16px;}
-        .ls-ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:23px;background:var(--accent-bg,#e6f1fb);}
-        .ls-cname{font-weight:700;font-size:17px;line-height:1.2;}
+        .ls-chead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px;}
+        .ls-card-top{display:flex;align-items:center;gap:13px;min-width:0;}
+        .ls-txt{min-width:0;}
+        .ls-ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:23px;background:var(--accent-bg,#e6f1fb);flex:0 0 auto;}
+        .ls-cname{font-weight:700;font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         .ls-cvert{font-size:12.5px;color:#64748b;margin-top:2px;}
-        .ls-badge{position:absolute;top:18px;right:18px;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:4px 9px;border-radius:7px;background:var(--accent-bg,#e6f1fb);color:var(--accent,#1e73b8);}
+        .ls-badge{font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:4px 9px;border-radius:7px;background:var(--accent-bg,#e6f1fb);color:var(--accent,#1e73b8);white-space:nowrap;flex:0 0 auto;}
         .ls-card-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e6ebf2;padding-top:13px;}
         .ls-wid{font-size:12px;color:#94a3b8;}
         .ls-open{font-size:13px;font-weight:700;color:#1e73b8;}
@@ -504,13 +506,15 @@
                 card.style.setProperty("--accent", st.a);
                 card.style.setProperty("--accent-bg", st.bg);
                 card.innerHTML = `
-                    <span class="ls-badge">${t.label}</span>
-                    <div class="ls-card-top">
-                        <div class="ls-ico">${t.icon || "🏥"}</div>
-                        <div>
-                            <div class="ls-cname">${name}</div>
-                            <div class="ls-cvert">${clinic.address || t.vertical || ""}</div>
+                    <div class="ls-chead">
+                        <div class="ls-card-top">
+                            <div class="ls-ico">${t.icon || "🏥"}</div>
+                            <div class="ls-txt">
+                                <div class="ls-cname">${name}</div>
+                                <div class="ls-cvert">${clinic.address || t.vertical || ""}</div>
+                            </div>
                         </div>
+                        <span class="ls-badge">${t.label}</span>
                     </div>
                     <div class="ls-card-foot">
                         <span class="ls-wid">${tenantId}</span>
