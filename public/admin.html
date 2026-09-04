@@ -131,13 +131,14 @@
             <div class="mb">
                 <div id="usersList"></div>
                 <label style="margin-top:14px;">Add a user</label>
-                <div style="display:flex;gap:8px;">
-                    <input id="u_email" type="email" placeholder="user@clinic.ph" style="flex:1;">
+                <input id="u_email" type="email" placeholder="user@clinic.ph">
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <input id="u_pw" type="text" placeholder="Temporary password (min 6)" style="flex:1;">
                     <select id="u_role" style="width:120px;flex:0 0 auto;"><option value="staff">Staff</option><option value="admin">Admin</option></select>
                 </div>
-                <button class="btn primary" id="btnAddUser" style="margin-top:10px;width:100%;">Add user</button>
+                <button class="btn primary" id="btnAddUser" style="margin-top:10px;width:100%;">Create user</button>
                 <div class="status" id="usersStatus"></div>
-                <div class="cmeta" style="margin-top:12px;line-height:1.5;">Adding a user grants their email access to this clinic. They sign in at the workspace page and set their own password on first sign-in.</div>
+                <div class="cmeta" style="margin-top:12px;line-height:1.5;">Creates the login account with this password and grants access to this clinic. Give the user this email + temporary password; they can change it after signing in.</div>
             </div>
             <div class="mf"><button class="btn primary" id="btnUsersClose">Done</button></div>
         </div>
@@ -211,15 +212,21 @@
             host.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>removeUser(b.dataset.rm));
         }
         async function addUser(){
-            const em=el("u_email").value.trim().toLowerCase(), role=el("u_role").value;
+            const em=el("u_email").value.trim().toLowerCase(), pw=el("u_pw").value, role=el("u_role").value;
             if(!em || !em.includes("@")) return setS("usersStatus","Enter a valid email.",true);
-            setS("usersStatus","Adding…");
+            if(!pw || pw.length<6) return setS("usersStatus","Set a temporary password (at least 6 characters).",true);
+            setS("usersStatus","Creating user…");
             try{
+                // Create the login account in a SECONDARY app instance so the operator stays signed in.
+                const sec = firebase.apps.find(a=>a.name==="creator") || firebase.initializeApp(window.OMS_CONFIG.firebase,"creator");
+                try { await sec.auth().createUserWithEmailAndPassword(em,pw); }
+                catch(err){ if(err.code!=="auth/email-already-in-use") throw err; setS("usersStatus","Account existed — access granted.",false); }
+                await sec.auth().signOut().catch(()=>{});
                 const ref=db.collection("clinics").doc(usersClinicId);
                 const upd={ memberEmails: firebase.firestore.FieldValue.arrayUnion(em) };
                 if(role==="admin") upd.adminEmails=firebase.firestore.FieldValue.arrayUnion(em);
                 await ref.set(upd,{merge:true});
-                el("u_email").value=""; setS("usersStatus","Added ✓",false);
+                el("u_email").value=""; el("u_pw").value=""; setS("usersStatus","User created ✓",false);
                 await openUsers(usersClinicId); await loadClinics();
             }catch(e){ setS("usersStatus","Failed: "+e.message,true); }
         }
