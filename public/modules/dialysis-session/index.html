@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>LEADSERVE CMS - Dialysis Treatment Session</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="../../assets/logo.png">
+    <link rel="stylesheet" href="../../assets/style.css">
+    <style>
+        @page { size: A4; margin: 12mm; }
+        :root{ --brand:#0a3d62; --ink:#0f172a; --line:#e5e7eb; --muted:#667085; --bg:#f7f9fc; }
+        body{ font-family:'Inter',system-ui,Arial,sans-serif; background:var(--bg); color:var(--ink); margin:0; }
+        .wrap{ max-width:1080px; margin:14px auto; padding:0 14px; }
+        .section{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+        .section h3{ margin:0 0 12px; font-size:15px; }
+        .grid{ display:grid; gap:10px; }
+        .g5{ grid-template-columns:repeat(5,1fr); } .g4{ grid-template-columns:repeat(4,1fr); } .g3{ grid-template-columns:repeat(3,1fr); } .g2{ grid-template-columns:repeat(2,1fr); }
+        label.f{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+        input,select,textarea{ width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; box-sizing:border-box; }
+        textarea{ min-height:52px; resize:vertical; }
+        .btn{ border:1px solid var(--line); background:#fff; padding:9px 14px; border-radius:9px; cursor:pointer; font:inherit; }
+        .btn.primary{ background:var(--brand); color:#fff; border-color:transparent; }
+        .btn.small{ padding:5px 10px; font-size:12px; }
+        .top-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+        table.mon{ width:100%; border-collapse:collapse; }
+        table.mon th,table.mon td{ border:1px solid var(--line); padding:6px 8px; font-size:13px; text-align:left; }
+        table.mon th{ background:#eef4fb; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+        table.mon input{ border:none; padding:4px 6px; }
+        .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+        .chip{ display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:8px; padding:6px 10px; font-size:13px; cursor:pointer; }
+        .chip input{ width:15px; height:15px; }
+        .status-line{ font-size:13px; color:var(--muted); }
+        .kpi{ background:#f1f6fc; border-radius:10px; padding:10px 12px; }
+        .kpi .l{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+        .kpi .v{ font-size:18px; font-weight:700; margin-top:2px; }
+        @media print{ .noprint{ display:none !important; } body{ background:#fff; } .section{ border:none; box-shadow:none; padding:6px 0; } }
+    </style>
+    <script src="../../config.js"></script>
+    <script src="../../assets/auth-guard.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="../../assets/leadserve-firestore.js"></script>
+    <script src="../../assets/app.js"></script>
+    <script defer src="../../assets/header.js"></script>
+    <script>
+        if (!firebase.apps.length) firebase.initializeApp(window.OMS_CONFIG.firebase);
+        const db = firebase.firestore();
+    </script>
+</head>
+<body>
+    <msn-header></msn-header>
+    <div class="wrap">
+        <div class="section">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                <h3 style="margin:0;">Dialysis Treatment Session</h3>
+                <div class="top-actions noprint">
+                    <button class="btn" id="btnLoad">Load Last</button>
+                    <button class="btn" id="btnNew">New</button>
+                    <button class="btn" id="btnPrint">Print</button>
+                    <button class="btn primary" id="btnSave">Save</button>
+                </div>
+            </div>
+            <div class="status-line noprint" id="status" style="margin-top:6px;"></div>
+        </div>
+
+        <div class="section">
+            <h3>Patient &amp; Session</h3>
+            <div class="grid g4">
+                <div><label class="f">Patient Name</label><input id="p_name"></div>
+                <div><label class="f">Age</label><input id="p_age" type="number" min="0"></div>
+                <div><label class="f">Sex</label><select id="p_sex"><option value="">—</option><option>Female</option><option>Male</option></select></div>
+                <div><label class="f">Date</label><input id="s_date" type="date"></div>
+                <div><label class="f">Session #</label><input id="s_no" type="number" min="1" placeholder="e.g. 128"></div>
+                <div><label class="f">Shift</label><select id="s_shift"><option value="">—</option><option>AM</option><option>PM</option><option>Evening</option></select></div>
+                <div><label class="f">Machine #</label><input id="s_machine"></div>
+                <div><label class="f">Vascular Access</label><select id="s_access"><option value="">—</option><option>AV Fistula</option><option>AV Graft</option><option>Perm Catheter</option><option>Temp Catheter</option></select></div>
+                <div><label class="f">Dialyzer</label><input id="s_dialyzer" placeholder="e.g. F160"></div>
+                <div><label class="f">Duration (hrs)</label><input id="s_dur" type="number" step="0.5" placeholder="4"></div>
+                <div><label class="f">Blood Flow (mL/min)</label><input id="s_bfr" type="number" placeholder="300"></div>
+                <div><label class="f">Dialysate Flow (mL/min)</label><input id="s_dfr" type="number" placeholder="500"></div>
+                <div><label class="f">Heparin (units)</label><input id="s_heparin"></div>
+                <div><label class="f">Dialysate / Bath</label><input id="s_bath" placeholder="e.g. K 2.0 / Ca 2.5"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Pre / Post Assessment</h3>
+            <div class="grid g4">
+                <div><label class="f">Pre Weight (kg)</label><input id="a_prewt" type="number" step="0.1" oninput="calc()"></div>
+                <div><label class="f">Dry Weight (kg)</label><input id="a_dry" type="number" step="0.1" oninput="calc()"></div>
+                <div><label class="f">Post Weight (kg)</label><input id="a_postwt" type="number" step="0.1" oninput="calc()"></div>
+                <div><label class="f">UF Goal (L)</label><input id="a_ufgoal" type="number" step="0.1"></div>
+                <div><label class="f">Pre BP</label><input id="a_prebp" placeholder="140/90"></div>
+                <div><label class="f">Pre HR</label><input id="a_prehr" type="number"></div>
+                <div><label class="f">Post BP</label><input id="a_postbp" placeholder="130/80"></div>
+                <div><label class="f">Post HR</label><input id="a_posthr" type="number"></div>
+                <div><label class="f">Temp (°C)</label><input id="a_temp" type="number" step="0.1"></div>
+            </div>
+            <div class="grid g3" style="margin-top:12px;">
+                <div class="kpi"><div class="l">Pre-dialysis fluid overload</div><div class="v" id="k_overload">—</div></div>
+                <div class="kpi"><div class="l">Actual weight loss</div><div class="v" id="k_loss">—</div></div>
+                <div class="kpi"><div class="l">Post vs dry weight</div><div class="v" id="k_vsdry">—</div></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>Intradialytic Monitoring
+                <button class="btn small noprint" id="btnAddRow" style="float:right;">+ Add reading</button>
+            </h3>
+            <table class="mon">
+                <thead><tr><th style="width:90px;">Time</th><th>BP</th><th>HR</th><th>BFR</th><th>UF removed (mL)</th><th>Meds / Remarks</th><th class="noprint" style="width:36px;"></th></tr></thead>
+                <tbody id="monBody"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h3>Complications</h3>
+            <div class="chips" id="complications"></div>
+            <div style="margin-top:12px;"><label class="f">Nurse / Physician Notes</label><textarea id="notes"></textarea></div>
+            <div class="grid g2" style="margin-top:10px;">
+                <div><label class="f">Dialysis Nurse</label><input id="sig_nurse"></div>
+                <div><label class="f">Nephrologist</label><input id="sig_md"></div>
+            </div>
+        </div>
+        <footer style="text-align:center;color:var(--muted);font-size:12px;padding:10px 0 24px;">
+            <span data-clinic="name"></span> &bull; <span data-clinic="address"></span> &bull; Dialysis Records
+        </footer>
+    </div>
+
+    <script>
+        const el = (id)=>document.getElementById(id);
+        const setStatus=(m,ok)=>{const s=el("status");s.textContent=m||"";s.style.color=ok?"#16a34a":"var(--muted)";};
+        const num=(id)=>parseFloat(el(id).value||"0")||0;
+
+        window.calc=function(){
+            const pre=num("a_prewt"),dry=num("a_dry"),post=num("a_postwt");
+            el("k_overload").textContent = (pre&&dry)? (pre-dry).toFixed(1)+" kg" : "—";
+            el("k_loss").textContent = (pre&&post)? (pre-post).toFixed(1)+" kg" : "—";
+            el("k_vsdry").textContent = (post&&dry)? ((post-dry>=0?"+":"")+(post-dry).toFixed(1)+" kg") : "—";
+        };
+
+        const COMPLICATIONS=["Hypotension","Muscle cramps","Nausea/Vomiting","Headache","Chest pain","Chills/Fever","Access problem","Clotting","Bleeding","None"];
+        function buildComplications(sel){
+            const host=el("complications"); host.innerHTML="";
+            COMPLICATIONS.forEach(c=>{
+                const id="c_"+c.replace(/\W/g,"");
+                const l=document.createElement("label"); l.className="chip";
+                l.innerHTML=`<input type="checkbox" value="${c}" ${sel&&sel.includes(c)?"checked":""}> ${c}`;
+                host.appendChild(l);
+            });
+        }
+        function getComplications(){return Array.from(document.querySelectorAll("#complications input:checked")).map(i=>i.value);}
+
+        function addRow(d={}){
+            const tr=document.createElement("tr");
+            tr.innerHTML=`
+                <td><input class="r-time" type="time" value="${d.time||""}"></td>
+                <td><input class="r-bp" value="${d.bp||""}" placeholder="130/80"></td>
+                <td><input class="r-hr" value="${d.hr||""}" placeholder="78"></td>
+                <td><input class="r-bfr" value="${d.bfr||""}" placeholder="300"></td>
+                <td><input class="r-uf" value="${d.uf||""}" placeholder="500"></td>
+                <td><input class="r-note" value="${d.note||""}"></td>
+                <td class="noprint"><button class="btn small r-del">✕</button></td>`;
+            tr.querySelector(".r-del").onclick=()=>tr.remove();
+            el("monBody").appendChild(tr);
+        }
+        function getRows(){
+            return Array.from(document.querySelectorAll("#monBody tr")).map(tr=>({
+                time:tr.querySelector(".r-time").value, bp:tr.querySelector(".r-bp").value,
+                hr:tr.querySelector(".r-hr").value, bfr:tr.querySelector(".r-bfr").value,
+                uf:tr.querySelector(".r-uf").value, note:tr.querySelector(".r-note").value,
+            })).filter(r=>r.time||r.bp||r.hr||r.uf||r.note);
+        }
+
+        const COL="dialysis_sessions";
+        function payload(){
+            const g=(id)=>el(id).value;
+            return {
+                name:g("p_name").trim(), age:g("p_age"), sex:g("p_sex"), date:g("s_date"),
+                sessionNo:g("s_no"), shift:g("s_shift"), machine:g("s_machine"), access:g("s_access"),
+                dialyzer:g("s_dialyzer"), duration:g("s_dur"), bfr:g("s_bfr"), dfr:g("s_dfr"),
+                heparin:g("s_heparin"), bath:g("s_bath"),
+                assess:{preWt:g("a_prewt"),dry:g("a_dry"),postWt:g("a_postwt"),ufGoal:g("a_ufgoal"),
+                        preBP:g("a_prebp"),preHR:g("a_prehr"),postBP:g("a_postbp"),postHR:g("a_posthr"),temp:g("a_temp")},
+                monitoring:getRows(), complications:getComplications(),
+                notes:g("notes").trim(), nurse:g("sig_nurse").trim(), nephrologist:g("sig_md").trim(),
+                ts:Date.now(),
+            };
+        }
+        function apply(d){
+            const s=(id,v)=>{el(id).value=v||"";};
+            s("p_name",d.name);s("p_age",d.age);s("p_sex",d.sex);s("s_date",d.date||new Date().toISOString().slice(0,10));
+            s("s_no",d.sessionNo);s("s_shift",d.shift);s("s_machine",d.machine);s("s_access",d.access);
+            s("s_dialyzer",d.dialyzer);s("s_dur",d.duration);s("s_bfr",d.bfr);s("s_dfr",d.dfr);s("s_heparin",d.heparin);s("s_bath",d.bath);
+            const a=d.assess||{}; s("a_prewt",a.preWt);s("a_dry",a.dry);s("a_postwt",a.postWt);s("a_ufgoal",a.ufGoal);
+            s("a_prebp",a.preBP);s("a_prehr",a.preHR);s("a_postbp",a.postBP);s("a_posthr",a.postHR);s("a_temp",a.temp);
+            el("monBody").innerHTML=""; (d.monitoring||[]).forEach(addRow); if(!(d.monitoring||[]).length){for(let i=0;i<4;i++)addRow();}
+            buildComplications(d.complications||[]); s("notes",d.notes);s("sig_nurse",d.nurse);s("sig_md",d.nephrologist);
+            calc();
+        }
+
+        el("btnSave").onclick=async()=>{const p=payload(); if(!p.name)return setStatus("Enter a patient name before saving.");
+            setStatus("Saving…"); try{const r=await db.collection(COL).add(p); setStatus("Saved ✓ ("+r.id.slice(0,6)+")",true);}catch(e){setStatus("Save failed: "+e.message);}};
+        el("btnLoad").onclick=async()=>{setStatus("Loading last session…");
+            try{const snap=await db.collection(COL).orderBy("ts","desc").limit(1).get(); if(snap.empty)return setStatus("No saved sessions yet."); apply(snap.docs[0].data()); setStatus("Loaded last session.",true);}
+            catch(e){setStatus("Load failed: "+e.message);}};
+        el("btnNew").onclick=()=>{apply({});setStatus("New session.");};
+        el("btnPrint").onclick=()=>window.print();
+        el("btnAddRow").onclick=()=>addRow();
+        apply({});
+    </script>
+</body>
+</html>

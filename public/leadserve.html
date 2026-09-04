@@ -479,10 +479,11 @@
 
         // Load each clinic's profile from clinics/{id} and render a typed card.
         const TYPE_STYLE = {
-            eye:     { a: "#1e73b8", bg: "#e6f1fb" },
-            dental:  { a: "#0f9d8f", bg: "#dcf5f0" },
-            lab:     { a: "#7c3aed", bg: "#efe8fd" },
-            general: { a: "#475569", bg: "#eef2f7" },
+            eye:      { a: "#1e73b8", bg: "#e6f1fb" },
+            dental:   { a: "#0f9d8f", bg: "#dcf5f0" },
+            dialysis: { a: "#c0392b", bg: "#fbe9e7" },
+            lab:      { a: "#7c3aed", bg: "#efe8fd" },
+            general:  { a: "#475569", bg: "#eef2f7" },
         };
         async function renderClinics(ids) {
             const TYPES = window.LEADSERVE_CLINIC_TYPES || {};

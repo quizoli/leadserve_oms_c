@@ -85,10 +85,11 @@
     // clinic type it operates as; the app adapts its clinical modules to that type.
     // One brand, not separate products. Ophthalmology ("eye") is just one type.
     const CLINIC_TYPES = {
-        eye:     { label: "Eye Center",    vertical: "Ophthalmology",   icon: "👁️" },
-        dental:  { label: "Dental Clinic", vertical: "Dentistry",       icon: "🦷" },
-        lab:     { label: "Laboratory",    vertical: "Diagnostics",     icon: "🧪" },
-        general: { label: "Clinic",        vertical: "General practice", icon: "🏥" },
+        eye:      { label: "Eye Center",       vertical: "Ophthalmology",        icon: "👁️" },
+        dental:   { label: "Dental Clinic",    vertical: "Dentistry",            icon: "🦷" },
+        dialysis: { label: "Dialysis Center",  vertical: "Nephrology / Renal",   icon: "🩸" },
+        lab:      { label: "Laboratory",       vertical: "Diagnostics",          icon: "🧪" },
+        general:  { label: "Clinic",           vertical: "General practice",     icon: "🏥" },
     };
     APP_CONFIG.appName = "LEADSERVE CMS";
     APP_CONFIG.tagline = "Clinic Management System";
@@ -161,7 +162,7 @@
         const seg = (window.location.pathname.split("/modules/")[1] || "");
         const key = seg ? seg.split("/")[0].toLowerCase() : "";
         if (!key) return; // not a module page (landing, login, leadserve)
-        const CORE = ["registration", "consultation", "charge-slip", "pos", "settings", "dental-chart"];
+        const CORE = ["registration", "consultation", "charge-slip", "pos", "settings", "dental-chart", "dialysis-session"];
         if (CORE.indexOf(key) !== -1) return;
         const mods = activeTenant && activeTenant.modules;
         if (!mods) return; // dynamic tenant: modules load async -> applyServerEntitlement decides
@@ -384,7 +385,7 @@
 
             const seg = (window.location.pathname.split("/modules/")[1] || "");
             const key = seg ? seg.split("/")[0].toLowerCase() : "";
-            const CORE = ["registration", "consultation", "charge-slip", "pos", "settings", "dental-chart"];
+            const CORE = ["registration", "consultation", "charge-slip", "pos", "settings", "dental-chart", "dialysis-session"];
             if (key && CORE.indexOf(key) === -1 && config.modules[key] !== true) {
                 const depth = Math.max(0, window.location.pathname.split("/").length - 2);
                 window.location.replace("../".repeat(depth) + "index.html");
