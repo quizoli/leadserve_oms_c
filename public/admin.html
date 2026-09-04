@@ -32,10 +32,12 @@
         .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
         .card{position:relative;background:#fff;border:1px solid #e6ebf2;border-radius:16px;padding:18px 20px;overflow:hidden;}
         .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--a,#1e73b8);}
-        .card .row1{display:flex;align-items:center;gap:12px;}
-        .ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--ab,#e6f1fb);}
-        .cname{font-weight:700;font-size:16px;} .cmeta{font-size:12.5px;color:#64748b;}
-        .badge{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:7px;background:var(--ab,#e6f1fb);color:var(--a,#1e73b8);}
+        .card .chead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+        .card .row1{display:flex;align-items:center;gap:12px;min-width:0;}
+        .card .row1 .txt{min-width:0;}
+        .ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--ab,#e6f1fb);flex:0 0 auto;}
+        .cname{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .cmeta{font-size:12.5px;color:#64748b;}
+        .badge{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:7px;background:var(--ab,#e6f1fb);color:var(--a,#1e73b8);white-space:nowrap;flex:0 0 auto;}
         .mods{display:flex;flex-wrap:wrap;gap:5px;margin:14px 0 4px;}
         .mtag{font-size:11px;background:#eef2f7;color:#475569;border-radius:6px;padding:3px 8px;}
         .cfoot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e6ebf2;padding-top:12px;margin-top:12px;}
@@ -142,9 +144,11 @@
                     const card=document.createElement("div"); card.className="card";
                     card.style.setProperty("--a",st.a); card.style.setProperty("--ab",st.b);
                     card.innerHTML=`
-                        <span class="badge">${t.label}</span>
-                        <div class="row1"><div class="ico">${t.icon||"🏥"}</div>
-                          <div><div class="cname">${c.clinicName||id}</div><div class="cmeta">${(c.plan||"custom")} plan &bull; ${(c.memberEmails||[]).length||0} user(s)</div></div></div>
+                        <div class="chead">
+                          <div class="row1"><div class="ico">${t.icon||"🏥"}</div>
+                            <div class="txt"><div class="cname">${c.clinicName||id}</div><div class="cmeta">${(c.plan||"custom")} plan &bull; ${(c.memberEmails||[]).length||0} user(s)</div></div></div>
+                          <span class="badge">${t.label}</span>
+                        </div>
                         <div class="mods">${on.length?on.map(m=>`<span class="mtag">${m}</span>`).join(""):'<span class="cmeta">core modules only</span>'}</div>
                         <div class="cfoot"><span class="cmeta">${id}</span>
                           <span><button class="btn small" data-open="${id}">Open ↗</button> <button class="btn small" data-edit="${id}">Edit</button></span></div>`;
