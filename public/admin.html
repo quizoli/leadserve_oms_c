@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>LEADSERVE CMS - Admin Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="assets/logo.png">
+    <style>
+        body{background:#f4f7fb;margin:0;font-family:'Inter',system-ui,-apple-system,Arial,sans-serif;color:#0f172a;}
+        .topbar{background:#fff;border-bottom:1px solid #e6ebf2;}
+        .topbar-in{max-width:1100px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+        .brand{display:flex;align-items:center;gap:10px;}
+        .brand img{height:46px;width:auto;display:block;}
+        .brand .tag{font-size:12px;color:#64748b;font-weight:600;background:#eef4fb;padding:3px 9px;border-radius:6px;}
+        .signout{border:1px solid #e6ebf2;background:#fff;border-radius:9px;padding:8px 14px;font:inherit;cursor:pointer;}
+        .shell{max-width:1100px;margin:0 auto;padding:26px 20px 60px;}
+        .login{max-width:400px;margin:6vh auto;background:#fff;border:1px solid #e6ebf2;border-radius:18px;overflow:hidden;box-shadow:0 14px 44px rgba(15,23,42,.09);}
+        .login .hero{background:linear-gradient(135deg,#0a3d62,#1e73b8);color:#fff;padding:26px;text-align:center;}
+        .login .hero h1{margin:0;font-size:21px;} .login .hero p{margin:6px 0 0;font-size:13px;opacity:.85;}
+        .login .body{padding:22px 26px 26px;}
+        label{display:block;font-size:12px;font-weight:600;color:#64748b;margin:12px 0 5px;}
+        input,select{width:100%;padding:11px 13px;border:1px solid #e6ebf2;border-radius:10px;font:inherit;box-sizing:border-box;}
+        input:focus,select:focus{outline:none;border-color:#1e73b8;box-shadow:0 0 0 3px rgba(30,115,184,.12);}
+        .cta{width:100%;margin-top:18px;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#0a3d62,#1e73b8);color:#fff;font:inherit;font-weight:700;cursor:pointer;}
+        .cta:hover{filter:brightness(1.06);}
+        .btn{border:1px solid #e6ebf2;background:#fff;border-radius:9px;padding:9px 15px;font:inherit;cursor:pointer;}
+        .btn.primary{background:#1e73b8;color:#fff;border-color:transparent;font-weight:600;}
+        .btn.small{padding:6px 11px;font-size:13px;}
+        .head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+        .head h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.4px;}
+        .head p{margin:4px 0 0;font-size:14px;color:#64748b;}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+        .card{position:relative;background:#fff;border:1px solid #e6ebf2;border-radius:16px;padding:18px 20px;overflow:hidden;}
+        .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--a,#1e73b8);}
+        .card .row1{display:flex;align-items:center;gap:12px;}
+        .ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:var(--ab,#e6f1fb);}
+        .cname{font-weight:700;font-size:16px;} .cmeta{font-size:12.5px;color:#64748b;}
+        .badge{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:7px;background:var(--ab,#e6f1fb);color:var(--a,#1e73b8);}
+        .mods{display:flex;flex-wrap:wrap;gap:5px;margin:14px 0 4px;}
+        .mtag{font-size:11px;background:#eef2f7;color:#475569;border-radius:6px;padding:3px 8px;}
+        .cfoot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e6ebf2;padding-top:12px;margin-top:12px;}
+        .status{font-size:13px;color:#64748b;margin-top:12px;text-align:center;}
+        .status.error{color:#dc2626;}
+        .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:50;}
+        .modal{background:#fff;border-radius:16px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+        .modal .mh{padding:18px 22px;border-bottom:1px solid #e6ebf2;font-weight:700;font-size:17px;}
+        .modal .mb{padding:18px 22px;} .modal .mf{padding:14px 22px;border-top:1px solid #e6ebf2;display:flex;justify-content:flex-end;gap:8px;}
+        .chks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+        .chk{display:flex;align-items:center;gap:8px;font-size:13.5px;border:1px solid #e6ebf2;border-radius:8px;padding:8px 10px;cursor:pointer;}
+        .hidden{display:none!important;}
+    </style>
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+        if (!firebase.apps.length) firebase.initializeApp(window.OMS_CONFIG.firebase);
+        const auth = firebase.auth(); const db = firebase.firestore();
+        const SUPER_ADMINS = ["olitun@me.com"];
+        const TYPES = window.LEADSERVE_CLINIC_TYPES || {};
+        const TYPE_STYLE = { eye:{a:"#1e73b8",b:"#e6f1fb"}, dental:{a:"#0f9d8f",b:"#dcf5f0"}, dialysis:{a:"#c0392b",b:"#fbe9e7"}, lab:{a:"#7c3aed",b:"#efe8fd"}, general:{a:"#475569",b:"#eef2f7"} };
+        const ADDON_MODULES = ["inventory","procurement","prescription","reports","philhealth","hr"];
+    </script>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-in">
+            <div class="brand"><img src="assets/leadserve-logo.png" alt="LEADSERVE CMS"><span class="tag">Admin Console</span></div>
+            <button class="signout hidden" id="btnSignOut">Sign out</button>
+        </div>
+    </header>
+
+    <main class="shell">
+        <section id="loginView">
+            <div class="login">
+                <div class="hero"><h1>Admin sign in</h1><p>LEADSERVE operators only</p></div>
+                <div class="body">
+                    <label for="email">Email</label>
+                    <input id="email" type="email" autocomplete="username" placeholder="operator@leadserve.ph">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+                    <button class="cta" id="btnLogin">Continue</button>
+                    <div class="status" id="loginStatus"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="adminView" class="hidden">
+            <div class="head">
+                <div><h1>Clinic accounts</h1><p id="sub">Provision and customize every clinic on LEADSERVE CMS.</p></div>
+                <button class="btn primary" id="btnNew">+ Create new clinic</button>
+            </div>
+            <div class="grid" id="clinicGrid"></div>
+            <div class="status" id="adminStatus"></div>
+        </section>
+    </main>
+
+    <div class="modal-bg hidden" id="modalBg">
+        <div class="modal">
+            <div class="mh" id="modalTitle">Create clinic</div>
+            <div class="mb">
+                <label>Clinic name</label>
+                <input id="f_name" placeholder="e.g. Sunrise Eye Center">
+                <label>Clinic type</label>
+                <select id="f_type"></select>
+                <label>Clinic admin email</label>
+                <input id="f_admin" type="email" placeholder="admin@clinic.ph">
+                <label style="margin-top:14px;">Enabled add-on modules</label>
+                <div class="chks" id="f_modules"></div>
+                <div class="status" id="modalStatus"></div>
+            </div>
+            <div class="mf">
+                <button class="btn" id="btnCancel">Cancel</button>
+                <button class="btn primary" id="btnSaveClinic">Create clinic</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const el=id=>document.getElementById(id);
+        const setS=(n,m,e)=>{const x=el(n);x.textContent=m||"";x.classList.toggle("error",!!e);};
+        const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,20)||"clinic";
+        let editingId=null;
+
+        function typeOptions(){ el("f_type").innerHTML = Object.keys(TYPES).map(k=>`<option value="${k}">${TYPES[k].label} — ${TYPES[k].vertical}</option>`).join(""); }
+        function moduleChecks(sel){ el("f_modules").innerHTML = ADDON_MODULES.map(m=>`<label class="chk"><input type="checkbox" value="${m}" ${sel&&sel[m]?"checked":""}> ${m}</label>`).join(""); }
+
+        async function loadClinics(){
+            setS("adminStatus","Loading clinics…");
+            const grid=el("clinicGrid"); grid.innerHTML="";
+            try{
+                const snap=await db.collection("clinics").get();
+                if(snap.empty){ setS("adminStatus","No clinics yet — click “Create new clinic”."); return; }
+                for(const d of snap.docs){
+                    const c=d.data(); const id=d.id;
+                    let mods={}; try{ const e=await db.collection("clinics").doc(id).collection("settings").doc("entitlement").get(); if(e.exists) mods=(e.data()||{}).modules||{}; }catch(_){}
+                    const t=TYPES[c.clinicType]||TYPES.general||{label:"Clinic",icon:"🏥"};
+                    const st=TYPE_STYLE[c.clinicType]||TYPE_STYLE.general;
+                    const on=ADDON_MODULES.filter(m=>mods[m]===true);
+                    const card=document.createElement("div"); card.className="card";
+                    card.style.setProperty("--a",st.a); card.style.setProperty("--ab",st.b);
+                    card.innerHTML=`
+                        <span class="badge">${t.label}</span>
+                        <div class="row1"><div class="ico">${t.icon||"🏥"}</div>
+                          <div><div class="cname">${c.clinicName||id}</div><div class="cmeta">${(c.plan||"custom")} plan &bull; ${(c.memberEmails||[]).length||0} user(s)</div></div></div>
+                        <div class="mods">${on.length?on.map(m=>`<span class="mtag">${m}</span>`).join(""):'<span class="cmeta">core modules only</span>'}</div>
+                        <div class="cfoot"><span class="cmeta">${id}</span>
+                          <span><button class="btn small" data-open="${id}">Open ↗</button> <button class="btn small" data-edit="${id}">Edit</button></span></div>`;
+                    grid.appendChild(card);
+                }
+                setS("adminStatus","");
+                grid.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEdit(b.dataset.edit));
+                grid.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>window.open(`index.html?leadserve=1&tenant=${b.dataset.open}`,"_blank"));
+            }catch(e){ setS("adminStatus","Load failed: "+e.message,true); }
+        }
+
+        function openCreate(){ editingId=null; el("modalTitle").textContent="Create clinic"; el("btnSaveClinic").textContent="Create clinic";
+            el("f_name").value=""; el("f_admin").value=""; typeOptions(); moduleChecks({inventory:true,procurement:true,prescription:true,reports:true}); setS("modalStatus",""); el("f_name").disabled=false; el("f_admin").disabled=false; el("modalBg").classList.remove("hidden"); }
+        async function openEdit(id){ editingId=id; setS("modalStatus","");
+            const c=(await db.collection("clinics").doc(id).get()).data()||{};
+            let mods={}; try{ const e=await db.collection("clinics").doc(id).collection("settings").doc("entitlement").get(); if(e.exists) mods=(e.data()||{}).modules||{};}catch(_){}
+            el("modalTitle").textContent="Edit clinic"; el("btnSaveClinic").textContent="Save changes";
+            typeOptions(); el("f_name").value=c.clinicName||""; el("f_type").value=c.clinicType||"general";
+            el("f_admin").value=(c.memberEmails||[])[0]||""; moduleChecks(mods);
+            el("f_name").disabled=false; el("f_admin").disabled=false; el("modalBg").classList.remove("hidden"); }
+        function closeModal(){ el("modalBg").classList.add("hidden"); }
+
+        async function saveClinic(){
+            const name=el("f_name").value.trim(), type=el("f_type").value, admin=el("f_admin").value.trim().toLowerCase();
+            if(!name) return setS("modalStatus","Enter a clinic name.",true);
+            if(!admin) return setS("modalStatus","Enter the clinic admin email.",true);
+            const mods={}; ADDON_MODULES.forEach(m=>mods[m]=false);
+            document.querySelectorAll("#f_modules input:checked").forEach(i=>mods[i.value]=true);
+            const id = editingId || (slug(name)+"-"+Math.random().toString(36).slice(2,6));
+            setS("modalStatus","Saving…");
+            try{
+                const ref=db.collection("clinics").doc(id);
+                const existing = editingId ? ((await ref.get()).data()||{}) : {};
+                const memberEmails = Array.from(new Set([...(existing.memberEmails||[]), admin]));
+                await ref.set({ clinicId:id, clinicName:name, clinicType:type,
+                    clinicShortName: existing.clinicShortName || name,
+                    memberEmails, adminEmails:[admin],
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    ...(editingId?{}:{createdAt:firebase.firestore.FieldValue.serverTimestamp()}) }, {merge:true});
+                await ref.collection("settings").doc("entitlement").set({ modules:mods, updatedAt:firebase.firestore.FieldValue.serverTimestamp() }, {merge:true});
+                closeModal(); await loadClinics();
+            }catch(e){ setS("modalStatus","Save failed: "+e.message,true); }
+        }
+
+        el("btnLogin").onclick=async()=>{ const em=el("email").value.trim(),pw=el("password").value;
+            if(!em||!pw) return setS("loginStatus","Enter email and password.",true);
+            setS("loginStatus","Signing in…"); try{ await auth.signInWithEmailAndPassword(em,pw); }catch(e){ setS("loginStatus",e.message,true); } };
+        ["email","password"].forEach(id=>el(id).addEventListener("keydown",e=>{if(e.key==="Enter")el("btnLogin").click();}));
+        el("btnSignOut").onclick=()=>auth.signOut();
+        el("btnNew").onclick=openCreate; el("btnCancel").onclick=closeModal; el("btnSaveClinic").onclick=saveClinic;
+        el("modalBg").onclick=e=>{ if(e.target===el("modalBg")) closeModal(); };
+
+        auth.onAuthStateChanged(u=>{
+            if(u && SUPER_ADMINS.includes((u.email||"").toLowerCase())){
+                el("loginView").classList.add("hidden"); el("adminView").classList.remove("hidden"); el("btnSignOut").classList.remove("hidden");
+                el("sub").textContent="Signed in as "+u.email; loadClinics();
+            } else if(u){
+                setS("loginStatus","This account is not a LEADSERVE operator.",true); auth.signOut();
+            } else {
+                el("loginView").classList.remove("hidden"); el("adminView").classList.add("hidden"); el("btnSignOut").classList.add("hidden");
+            }
+        });
+    </script>
+</body>
+</html>

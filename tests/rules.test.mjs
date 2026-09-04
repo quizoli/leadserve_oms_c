@@ -87,6 +87,26 @@ await check("user CAN read own directory doc", assertSucceeds(getDoc(doc(A, "use
 await check("user CANNOT read another user's directory doc", assertFails(getDoc(doc(A, "users/userB"))));
 await check("user CANNOT write own directory doc (provisioning-locked)", assertFails(setDoc(doc(A, "users/userA"), { clinicIds: ["clinicA", "clinicB"] })));
 
+console.log("H. Super-admin control plane + email membership");
+const op = env.authenticatedContext("op1", { email: "olitun@me.com" }).firestore();     // super-admin
+const notop = env.authenticatedContext("op2", { email: "someone@else.com" }).firestore(); // not super
+await check("super-admin CAN read any clinic (clinicA)", assertSucceeds(getDoc(doc(op, "clinics/clinicA"))));
+await check("super-admin CAN create a new clinic", assertSucceeds(setDoc(doc(op, "clinics/newclinic"), { clinicName: "New", clinicType: "eye" })));
+await check("super-admin CAN write members (provision)", assertSucceeds(setDoc(doc(op, "clinics/newclinic/members/u9"), { role: "admin" })));
+await check("super-admin CAN write entitlement (provision)", assertSucceeds(setDoc(doc(op, "clinics/newclinic/settings/entitlement"), { modules: { inventory: true } })));
+await check("super-admin CAN write users index", assertSucceeds(setDoc(doc(op, "users/u9"), { clinicIds: ["newclinic"] })));
+await check("NON-super-admin CANNOT create a clinic", assertFails(setDoc(doc(notop, "clinics/hackclinic"), { clinicName: "x" })));
+await check("NON-super-admin CANNOT write another clinic's entitlement", assertFails(setDoc(doc(notop, "clinics/clinicA/settings/entitlement"), { modules: {} })));
+
+console.log("I. Email-based membership (provisioned by email, no uid)");
+await seed(async (db) => setDoc(doc(db, "clinics/mailclinic"), { clinicName: "Mail", clinicType: "dental", memberEmails: ["doc@clinic.ph"] }));
+const byEmail = env.authenticatedContext("someUid", { email: "doc@clinic.ph" }).firestore();
+const otherEmail = env.authenticatedContext("otherUid", { email: "intruder@x.com" }).firestore();
+await check("email member CAN read own clinic", assertSucceeds(getDoc(doc(byEmail, "clinics/mailclinic/patients/p1"))));
+await check("email member CAN write own clinic", assertSucceeds(setDoc(doc(byEmail, "clinics/mailclinic/patients/p1"), { name: "T" })));
+await check("non-member email CANNOT read that clinic", assertFails(getDoc(doc(otherEmail, "clinics/mailclinic/patients/p1"))));
+await check("email member CANNOT self-write memberEmails (clinic profile locked)", assertFails(setDoc(doc(byEmail, "clinics/mailclinic"), { memberEmails: ["doc@clinic.ph", "x@x.com"] })));
+
 await env.cleanup();
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

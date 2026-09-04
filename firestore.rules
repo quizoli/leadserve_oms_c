@@ -1,29 +1,30 @@
 rules_version = '2';
 
-// LEADSERVE OMS — Firestore rules (v3: multi-tenant isolation + per-module entitlement)
+// LEADSERVE CMS — Firestore rules (v4: + super-admin control plane, email membership)
 //
-// Two data shapes coexist:
+// Data shapes:
+//  1. legacyRoot (single-clinic demo): flat top-level collections. signed-in + active,
+//     with per-module gating via settings/entitlement.
+//  2. tenantPath (multi-tenant): clinics/{tid}/<collection>/<doc>, isolated by membership.
 //
-//  1. legacyRoot (current single-clinic demo): flat top-level collections
-//     (patients, visits, oms_slips, prescriptions, inventory_*, ...). Guarded by
-//     "signed-in + active", with per-module gating via  settings/entitlement.
+// Membership of a clinic is granted by EITHER a uid member doc (clinics/{tid}/members/{uid})
+// OR the user's email being listed in clinics/{tid}.memberEmails. This lets the browser
+// admin console provision clinics without a server (no Admin SDK / Cloud Function needed).
 //
-//  2. tenantPath (multi-tenant SaaS): every clinic's data lives under
-//     clinics/{tenantId}/<collection>/<doc>. A user may touch a clinic's data
-//     ONLY if they are a member of that clinic (clinics/{tid}/members/{uid} exists).
-//     Per-clinic module entitlement lives at clinics/{tid}/settings/entitlement.
-//     Membership + entitlement are provisioned by LEADSERVE (Admin SDK/console)
-//     and are NOT client-writable — a clinic can neither add members nor grant
-//     itself modules, and no clinic can read or write another clinic's data.
-//
-// Module gating is fail-open (absent entitlement doc = allowed) in both shapes.
+// A LEADSERVE super-admin (operator) can read every clinic and create/customize clinics,
+// members, and entitlement — the control plane. Everyone else stays locked out.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function signedIn() { return request.auth != null; }
+    function email() { return signedIn() ? request.auth.token.email : ''; }
 
-    // ---- shared module → collection mapping ----
+    // LEADSERVE operators (super-admins). Full control-plane access.
+    function isSuperAdmin() {
+      return signedIn() && email() in ['olitun@me.com'];
+    }
+
     function collectionModule(col) {
       return col.matches('inventory_.*') ? 'inventory'
         : col == 'prescriptions' ? 'prescription'
@@ -46,9 +47,18 @@ service cloud.firestore {
     }
 
     // ---- tenantPath (multi-tenant) ----
+    function clinicData(tid) { return get(/databases/$(database)/documents/clinics/$(tid)).data; }
+    function emailMember(tid) {
+      return exists(/databases/$(database)/documents/clinics/$(tid))
+        && 'memberEmails' in clinicData(tid)
+        && email() in clinicData(tid).memberEmails;
+    }
     function isMember(tid) {
-      return signedIn()
-        && exists(/databases/$(database)/documents/clinics/$(tid)/members/$(request.auth.uid));
+      return signedIn() && (
+        isSuperAdmin()
+        || exists(/databases/$(database)/documents/clinics/$(tid)/members/$(request.auth.uid))
+        || emailMember(tid)
+      );
     }
     function tenantModuleAllowed(tid, key) {
       return key == ''
@@ -58,32 +68,30 @@ service cloud.firestore {
         || get(/databases/$(database)/documents/clinics/$(tid)/settings/entitlement).data.modules[key] != false;
     }
 
-    // Clinic profile doc: readable by members, never client-writable.
+    // Clinic profile doc: readable by members/super-admin; writable only by super-admin.
     match /clinics/{tid} {
-      allow read: if isMember(tid);
-      allow write: if false;
+      allow read: if isMember(tid) || isSuperAdmin();
+      allow write: if isSuperAdmin();
     }
 
-    // All of a clinic's data. Isolated by membership + per-clinic module entitlement.
-    // members/* and settings/entitlement are provisioned by LEADSERVE (not client-writable).
+    // A clinic's data. Members read/write their own clinic (module-gated). members/* and
+    // settings/entitlement are control-plane docs — writable only by super-admin.
     match /clinics/{tid}/{col}/{docId} {
-      allow read: if isMember(tid) && tenantModuleAllowed(tid, collectionModule(col));
-      allow write: if isMember(tid)
-        && tenantModuleAllowed(tid, collectionModule(col))
-        && col != 'members'
-        && !(col == 'settings' && docId == 'entitlement');
+      allow read: if (isMember(tid) || isSuperAdmin()) && tenantModuleAllowed(tid, collectionModule(col));
+      allow write: if isSuperAdmin()
+        || (isMember(tid) && tenantModuleAllowed(tid, collectionModule(col))
+            && col != 'members'
+            && !(col == 'settings' && docId == 'entitlement'));
     }
 
-    // Per-user directory (reverse membership index for the workspace switcher:
-    // users/{uid}.clinicIds = [tenantIds]). Readable only by that user; written by
-    // LEADSERVE provisioning (Admin SDK), never by clients.
+    // Per-user directory (reverse membership index). Readable by that user or super-admin;
+    // writable only by super-admin (provisioning).
     match /users/{uid} {
-      allow read: if signedIn() && uid == request.auth.uid;
-      allow write: if false;
+      allow read: if (signedIn() && uid == request.auth.uid) || isSuperAdmin();
+      allow write: if isSuperAdmin();
     }
 
-    // Flat legacyRoot collections (the current demo). Excludes 'clinics' and 'users',
-    // which are governed by the rules above.
+    // Flat legacyRoot collections (the current demo). Excludes 'clinics' and 'users'.
     match /{col}/{docId} {
       allow read: if signedIn() && notDeactivated()
         && col != 'clinics' && col != 'users' && rootModuleAllowed(collectionModule(col));

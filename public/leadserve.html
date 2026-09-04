@@ -460,21 +460,21 @@
         // users/{uid}.clinicIds (Firestore), with a clinicMemberships fallback. Not
         // filtered by the static registry — provisioned clinics live only in Firestore.
         async function getMembershipClinicIds(user) {
+            const ids = new Set();
+            // uid-based reverse index (older provisioning)
             try {
                 const userDoc = await db.collection("users").doc(user.uid).get();
-                if (userDoc.exists) {
-                    const ids = (userDoc.data() || {}).clinicIds;
-                    if (Array.isArray(ids) && ids.length) return Array.from(new Set(ids));
+                if (userDoc.exists) ((userDoc.data() || {}).clinicIds || []).forEach((i) => ids.add(i));
+            } catch (e) {}
+            // email-based membership (admin-console provisioning)
+            try {
+                const email = (user.email || "").toLowerCase();
+                if (email) {
+                    const snap = await db.collection("clinics").where("memberEmails", "array-contains", email).get();
+                    snap.docs.forEach((d) => ids.add(d.id));
                 }
             } catch (e) {}
-
-            try {
-                const snap = await db.collection("clinicMemberships").where("uid", "==", user.uid).get();
-                const ids = snap.docs.map((doc) => (doc.data() || {}).clinicId).filter(Boolean);
-                if (ids.length) return Array.from(new Set(ids));
-            } catch (e) {}
-
-            return [];
+            return Array.from(ids);
         }
 
         // Load each clinic's profile from clinics/{id} and render a typed card.
