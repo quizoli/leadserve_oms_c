@@ -348,6 +348,8 @@
         .ls-login-body input:focus{outline:none;border-color:#1e73b8;box-shadow:0 0 0 3px rgba(30,115,184,.12);}
         .ls-cta{width:100%;margin-top:20px;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#0a3d62,#1e73b8);color:#fff;font:inherit;font-weight:700;cursor:pointer;}
         .ls-cta:hover{filter:brightness(1.07);}
+        .ls-toggle{text-align:center;margin-top:14px;font-size:13px;color:#1e73b8;font-weight:600;cursor:pointer;}
+        .ls-toggle:hover{text-decoration:underline;}
         .ls-status{margin-top:12px;font-size:13px;color:#64748b;text-align:center;}
         .ls-status.error{color:#dc2626;}
         .ls-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
@@ -395,6 +397,7 @@
                     <label for="password">Password</label>
                     <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
                     <button class="ls-cta" id="btnLogin" type="button">Continue</button>
+                    <div class="ls-toggle" id="toggleMode">New here? Create an account</div>
                     <div class="ls-status" id="loginStatus"></div>
                 </div>
             </div>
@@ -537,17 +540,29 @@
             setStatus(clinicStatus, ids.length ? "" : "No clinic workspace is assigned to this account yet.", !ids.length);
         }
 
+        let authMode = "login";
+        el("toggleMode").addEventListener("click", () => {
+            authMode = authMode === "login" ? "signup" : "login";
+            const signup = authMode === "signup";
+            document.querySelector(".ls-login-hero h1").textContent = signup ? "Create account" : "Welcome back";
+            document.querySelector(".ls-login-hero p").textContent = signup ? "Set up your clinic login" : "Sign in to open your clinic workspace";
+            el("btnLogin").textContent = signup ? "Create account" : "Continue";
+            el("toggleMode").textContent = signup ? "Already have an account? Sign in" : "New here? Create an account";
+            setStatus(loginStatus, "", false);
+        });
+
         el("btnLogin").addEventListener("click", async () => {
             const email = (el("email").value || "").trim();
             const password = el("password").value || "";
             if (!email || !password) return setStatus(loginStatus, "Enter email and password.", true);
-
-            setStatus(loginStatus, "Signing in...", false);
+            if (authMode === "signup" && password.length < 6) return setStatus(loginStatus, "Password must be at least 6 characters.", true);
+            setStatus(loginStatus, authMode === "signup" ? "Creating account…" : "Signing in…", false);
             try {
-                await auth.signInWithEmailAndPassword(email, password);
+                if (authMode === "signup") await auth.createUserWithEmailAndPassword(email, password);
+                else await auth.signInWithEmailAndPassword(email, password);
                 setStatus(loginStatus, "", false);
             } catch (e) {
-                setStatus(loginStatus, e.message || "Sign in failed.", true);
+                setStatus(loginStatus, e.message || "Failed.", true);
             }
         });
 
