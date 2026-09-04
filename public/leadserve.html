@@ -574,8 +574,14 @@
 
         btnSignOut.addEventListener("click", () => auth.signOut());
 
+        const SUPER_ADMINS = ["olitun@me.com"];
         auth.onAuthStateChanged((user) => {
             if (!user) return showLogin();
+            // Operators get routed to the admin console; clinic users see their workspaces.
+            if (SUPER_ADMINS.includes((user.email || "").toLowerCase())) {
+                window.location.href = "admin.html";
+                return;
+            }
             loadClinics(user);
         });
     </script>
