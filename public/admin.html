@@ -51,6 +51,11 @@
         .chk{display:flex;align-items:center;gap:8px;font-size:13.5px;border:1px solid #e6ebf2;border-radius:8px;padding:9px 11px;cursor:pointer;}
         .chk input[type=checkbox]{width:16px;height:16px;flex:0 0 auto;margin:0;padding:0;accent-color:#1e73b8;}
         .chk span{text-transform:capitalize;}
+        .urow{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid #eef2f7;font-size:13.5px;}
+        .urow:last-child{border-bottom:none;}
+        .urole{font-size:10.5px;font-weight:700;text-transform:uppercase;color:#1e73b8;background:#e6f1fb;border-radius:6px;padding:2px 7px;margin-left:8px;}
+        .urow .rm{color:#dc2626;cursor:pointer;font-size:12.5px;background:none;border:none;font-weight:600;}
+        .uempty{font-size:13px;color:#94a3b8;padding:6px 2px;}
         .hidden{display:none!important;}
     </style>
     <script src="config.js"></script>
@@ -120,6 +125,24 @@
         </div>
     </div>
 
+    <div class="modal-bg hidden" id="usersBg">
+        <div class="modal">
+            <div class="mh" id="usersTitle">Clinic users</div>
+            <div class="mb">
+                <div id="usersList"></div>
+                <label style="margin-top:14px;">Add a user</label>
+                <div style="display:flex;gap:8px;">
+                    <input id="u_email" type="email" placeholder="user@clinic.ph" style="flex:1;">
+                    <select id="u_role" style="width:120px;flex:0 0 auto;"><option value="staff">Staff</option><option value="admin">Admin</option></select>
+                </div>
+                <button class="btn primary" id="btnAddUser" style="margin-top:10px;width:100%;">Add user</button>
+                <div class="status" id="usersStatus"></div>
+                <div class="cmeta" style="margin-top:12px;line-height:1.5;">Adding a user grants their email access to this clinic. They sign in at the workspace page and set their own password on first sign-in.</div>
+            </div>
+            <div class="mf"><button class="btn primary" id="btnUsersClose">Done</button></div>
+        </div>
+    </div>
+
     <script>
         const el=id=>document.getElementById(id);
         const setS=(n,m,e)=>{const x=el(n);x.textContent=m||"";x.classList.toggle("error",!!e);};
@@ -151,11 +174,12 @@
                         </div>
                         <div class="mods">${on.length?on.map(m=>`<span class="mtag">${m}</span>`).join(""):'<span class="cmeta">core modules only</span>'}</div>
                         <div class="cfoot"><span class="cmeta">${id}</span>
-                          <span><button class="btn small" data-open="${id}">Open ↗</button> <button class="btn small" data-edit="${id}">Edit</button></span></div>`;
+                          <span><button class="btn small" data-users="${id}">Users</button> <button class="btn small" data-edit="${id}">Edit</button> <button class="btn small" data-open="${id}">Open ↗</button></span></div>`;
                     grid.appendChild(card);
                 }
                 setS("adminStatus","");
                 grid.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openEdit(b.dataset.edit));
+                grid.querySelectorAll("[data-users]").forEach(b=>b.onclick=()=>openUsers(b.dataset.users));
                 grid.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>window.open(`index.html?leadserve=1&tenant=${b.dataset.open}`,"_blank"));
             }catch(e){ setS("adminStatus","Load failed: "+e.message,true); }
         }
@@ -170,6 +194,46 @@
             el("f_admin").value=(c.memberEmails||[])[0]||""; moduleChecks(mods);
             el("f_name").disabled=false; el("f_admin").disabled=false; el("modalBg").classList.remove("hidden"); }
         function closeModal(){ el("modalBg").classList.add("hidden"); }
+
+        // ---- Users management ----
+        let usersClinicId=null;
+        async function openUsers(id){
+            usersClinicId=id; setS("usersStatus",""); el("u_email").value="";
+            const c=(await db.collection("clinics").doc(id).get()).data()||{};
+            el("usersTitle").textContent="Users — "+(c.clinicName||id);
+            renderUsers(c.memberEmails||[], c.adminEmails||[]);
+            el("usersBg").classList.remove("hidden");
+        }
+        function renderUsers(members, admins){
+            const host=el("usersList");
+            if(!members.length){ host.innerHTML='<div class="uempty">No users yet. Add the clinic\'s first user below.</div>'; return; }
+            host.innerHTML=members.map(em=>`<div class="urow"><span>${em}${admins.includes(em)?'<span class="urole">Admin</span>':''}</span><button class="rm" data-rm="${em}">Remove</button></div>`).join("");
+            host.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>removeUser(b.dataset.rm));
+        }
+        async function addUser(){
+            const em=el("u_email").value.trim().toLowerCase(), role=el("u_role").value;
+            if(!em || !em.includes("@")) return setS("usersStatus","Enter a valid email.",true);
+            setS("usersStatus","Adding…");
+            try{
+                const ref=db.collection("clinics").doc(usersClinicId);
+                const upd={ memberEmails: firebase.firestore.FieldValue.arrayUnion(em) };
+                if(role==="admin") upd.adminEmails=firebase.firestore.FieldValue.arrayUnion(em);
+                await ref.set(upd,{merge:true});
+                el("u_email").value=""; setS("usersStatus","Added ✓",false);
+                await openUsers(usersClinicId); await loadClinics();
+            }catch(e){ setS("usersStatus","Failed: "+e.message,true); }
+        }
+        async function removeUser(em){
+            setS("usersStatus","Removing…");
+            try{
+                await db.collection("clinics").doc(usersClinicId).set({
+                    memberEmails: firebase.firestore.FieldValue.arrayRemove(em),
+                    adminEmails: firebase.firestore.FieldValue.arrayRemove(em),
+                },{merge:true});
+                await openUsers(usersClinicId); await loadClinics();
+            }catch(e){ setS("usersStatus","Failed: "+e.message,true); }
+        }
+        function closeUsers(){ el("usersBg").classList.add("hidden"); }
 
         async function saveClinic(){
             const name=el("f_name").value.trim(), type=el("f_type").value, admin=el("f_admin").value.trim().toLowerCase();
@@ -200,6 +264,9 @@
         el("btnSignOut").onclick=()=>auth.signOut();
         el("btnNew").onclick=openCreate; el("btnCancel").onclick=closeModal; el("btnSaveClinic").onclick=saveClinic;
         el("modalBg").onclick=e=>{ if(e.target===el("modalBg")) closeModal(); };
+        el("btnAddUser").onclick=addUser; el("btnUsersClose").onclick=closeUsers;
+        el("u_email").addEventListener("keydown",e=>{ if(e.key==="Enter") addUser(); });
+        el("usersBg").onclick=e=>{ if(e.target===el("usersBg")) closeUsers(); };
 
         auth.onAuthStateChanged(u=>{
             if(u && SUPER_ADMINS.includes((u.email||"").toLowerCase())){
