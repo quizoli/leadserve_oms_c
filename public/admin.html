@@ -280,7 +280,9 @@
                 el("loginView").classList.add("hidden"); el("adminView").classList.remove("hidden"); el("btnSignOut").classList.remove("hidden");
                 el("sub").textContent="Signed in as "+u.email; loadClinics();
             } else if(u){
-                setS("loginStatus","This account is not a LEADSERVE operator.",true); auth.signOut();
+                // Signed-in but not an operator = a clinic user. Send them to their workspace.
+                setS("loginStatus","Opening your clinic workspace…",false);
+                window.location.href = "leadserve.html";
             } else {
                 el("loginView").classList.remove("hidden"); el("adminView").classList.add("hidden"); el("btnSignOut").classList.add("hidden");
             }
