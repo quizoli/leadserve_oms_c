@@ -19,8 +19,8 @@
         .login .hero h1{margin:0;font-size:21px;} .login .hero p{margin:6px 0 0;font-size:13px;opacity:.85;}
         .login .body{padding:22px 26px 26px;}
         label{display:block;font-size:12px;font-weight:600;color:#64748b;margin:12px 0 5px;}
-        input,select{width:100%;padding:11px 13px;border:1px solid #e6ebf2;border-radius:10px;font:inherit;box-sizing:border-box;}
-        input:focus,select:focus{outline:none;border-color:#1e73b8;box-shadow:0 0 0 3px rgba(30,115,184,.12);}
+        input:not([type=checkbox]),select{width:100%;padding:11px 13px;border:1px solid #e6ebf2;border-radius:10px;font:inherit;box-sizing:border-box;}
+        input:not([type=checkbox]):focus,select:focus{outline:none;border-color:#1e73b8;box-shadow:0 0 0 3px rgba(30,115,184,.12);}
         .cta{width:100%;margin-top:18px;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#0a3d62,#1e73b8);color:#fff;font:inherit;font-weight:700;cursor:pointer;}
         .cta:hover{filter:brightness(1.06);}
         .btn{border:1px solid #e6ebf2;background:#fff;border-radius:9px;padding:9px 15px;font:inherit;cursor:pointer;}
@@ -46,7 +46,9 @@
         .modal .mh{padding:18px 22px;border-bottom:1px solid #e6ebf2;font-weight:700;font-size:17px;}
         .modal .mb{padding:18px 22px;} .modal .mf{padding:14px 22px;border-top:1px solid #e6ebf2;display:flex;justify-content:flex-end;gap:8px;}
         .chks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
-        .chk{display:flex;align-items:center;gap:8px;font-size:13.5px;border:1px solid #e6ebf2;border-radius:8px;padding:8px 10px;cursor:pointer;}
+        .chk{display:flex;align-items:center;gap:8px;font-size:13.5px;border:1px solid #e6ebf2;border-radius:8px;padding:9px 11px;cursor:pointer;}
+        .chk input[type=checkbox]{width:16px;height:16px;flex:0 0 auto;margin:0;padding:0;accent-color:#1e73b8;}
+        .chk span{text-transform:capitalize;}
         .hidden{display:none!important;}
     </style>
     <script src="config.js"></script>
@@ -123,7 +125,7 @@
         let editingId=null;
 
         function typeOptions(){ el("f_type").innerHTML = Object.keys(TYPES).map(k=>`<option value="${k}">${TYPES[k].label} — ${TYPES[k].vertical}</option>`).join(""); }
-        function moduleChecks(sel){ el("f_modules").innerHTML = ADDON_MODULES.map(m=>`<label class="chk"><input type="checkbox" value="${m}" ${sel&&sel[m]?"checked":""}> ${m}</label>`).join(""); }
+        function moduleChecks(sel){ el("f_modules").innerHTML = ADDON_MODULES.map(m=>`<label class="chk"><input type="checkbox" value="${m}" ${sel&&sel[m]?"checked":""}><span>${m}</span></label>`).join(""); }
 
         async function loadClinics(){
             setS("adminStatus","Loading clinics…");
