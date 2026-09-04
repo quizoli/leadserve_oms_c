@@ -69,8 +69,13 @@ service cloud.firestore {
     }
 
     // Clinic profile doc: readable by members/super-admin; writable only by super-admin.
+    // Uses resource.data for the email check so it also works for QUERIES (the workspace
+    // switcher lists clinics via  where memberEmails array-contains <email> ). get()-based
+    // membership does not work for list operations.
     match /clinics/{tid} {
-      allow read: if isMember(tid) || isSuperAdmin();
+      allow read: if isSuperAdmin()
+        || (signedIn() && ('memberEmails' in resource.data) && (email() in resource.data.memberEmails))
+        || (signedIn() && exists(/databases/$(database)/documents/clinics/$(tid)/members/$(request.auth.uid)));
       allow write: if isSuperAdmin();
     }
 
